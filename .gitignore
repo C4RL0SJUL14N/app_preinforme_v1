@@ -4,3 +4,4 @@ dist
 .env
 tmp_*
 tmp_docx_extract
+supabase/.temp
