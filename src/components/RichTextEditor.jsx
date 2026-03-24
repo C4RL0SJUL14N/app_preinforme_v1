@@ -93,7 +93,7 @@ export function RichTextEditor({ label, value, onChange, rows = 4, helperText })
       lastAppliedValueRef.current = editorRef.current.innerHTML;
       return;
     }
-    if (nextHtml !== lastAppliedValueRef.current && editorRef.current.innerHTML !== nextHtml) {
+    if (editorRef.current.innerHTML !== nextHtml) {
       editorRef.current.innerHTML = nextHtml;
     }
     lastAppliedValueRef.current = nextHtml;
@@ -179,7 +179,6 @@ export function RichTextEditor({ label, value, onChange, rows = 4, helperText })
             lastAppliedValueRef.current = sanitized;
             onChange(sanitized);
           }}
-          dangerouslySetInnerHTML={{ __html: lastAppliedValueRef.current }}
         />
       </div>
       {helperText ? <Form.Text className="text-muted">{helperText}</Form.Text> : null}
