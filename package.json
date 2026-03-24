@@ -1,0 +1,28 @@
+{
+  "name": "preinforme-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "node scripts/dev-api.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "init:db": "node scripts/init-sheets.mjs",
+    "seed:admin": "node scripts/seed-admin.mjs",
+    "migrate:students": "node scripts/migrate-students-from-excel.mjs"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "pdf-lib": "^1.17.1",
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.4",
+    "react-dom": "^18.3.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "supabase": "^2.83.0",
+    "vite": "^8.0.1"
+  }
+}
