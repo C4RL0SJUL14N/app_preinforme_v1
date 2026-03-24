@@ -352,11 +352,10 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     setBulkRows((current) => {
       const next = { ...current };
       for (const studentId of targetIds) {
-        const row = next[studentId] || createEmptyBulkRow(studentId, groupObservations);
+        const row = next[studentId] || createEmptyBulkRow(studentId);
         const values = row[section] || [];
         next[studentId] = {
           ...row,
-          observations: row.observations || groupObservations,
           [section]: shouldAdd ? [...new Set([...values, question])] : values.filter((item) => item !== question)
         };
       }
@@ -384,15 +383,19 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     setMessage('');
     try {
       const rows = availableStudents
-        .map((student) => ({
-          ...(bulkRows[student.id] || createEmptyBulkRow(student.id)),
-          studentId: student.id,
-          observations: (bulkRows[student.id]?.observations || groupObservations || '').trim()
-        }))
-        .filter((row) => row.convivencia.length || row.academica.length || row.observations);
+        .map((student) => {
+          const row = bulkRows[student.id] || createEmptyBulkRow(student.id);
+          const hasMarkedOptions = row.convivencia.length || row.academica.length;
+          return {
+            ...row,
+            studentId: student.id,
+            observations: hasMarkedOptions ? (row.observations || groupObservations || '').trim() : ''
+          };
+        })
+        .filter((row) => row.convivencia.length || row.academica.length);
 
       if (!rows.length) {
-        throw new Error('Debes marcar al menos una dificultad o agregar una observacion para uno o varios estudiantes');
+        throw new Error('Debes marcar al menos una dificultad para uno o varios estudiantes');
       }
 
       const result = await apiFetch('/api/pre-reports/batch', {
@@ -867,7 +870,7 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                       rows={4}
                       value={groupObservations}
                       onChange={setGroupObservations}
-                      helperText="Esta observacion se aplicara a los estudiantes que guardes en esta carga grupal."
+                      helperText="Esta observacion solo se aplicara a los estudiantes que tengan al menos una dificultad marcada en esta carga grupal."
                     />
                   </Card>
 
