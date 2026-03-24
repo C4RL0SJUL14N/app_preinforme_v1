@@ -82,6 +82,10 @@ function createEmptyBulkRow(studentId, observations = '') {
   };
 }
 
+function hasMarkedQuestions(row) {
+  return Boolean((row?.convivencia || []).length || (row?.academica || []).length);
+}
+
 function BulkLegend({ data }) {
   return (
     <Row className="g-3 mb-3">
@@ -220,11 +224,14 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
   const [reportSummary, setReportSummary] = useState(null);
   const [teacherTab, setTeacherTab] = useState('create');
   const [createMode, setCreateMode] = useState('individual');
+  const [editMode, setEditMode] = useState('individual');
   const [reportPdfMode, setReportPdfMode] = useState('all');
   const [copyTargetSubjectId, setCopyTargetSubjectId] = useState('');
   const [bulkRows, setBulkRows] = useState({});
   const [selectedBulkIds, setSelectedBulkIds] = useState([]);
   const [groupObservations, setGroupObservations] = useState('');
+  const [editBulkRows, setEditBulkRows] = useState({});
+  const [selectedEditBulkIds, setSelectedEditBulkIds] = useState([]);
 
   const gradeOptions = data.grades;
   const reportGradeOptions = data.directedGrades || [];
@@ -233,6 +240,18 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
   const copySubjectOptions = useMemo(
     () => subjectOptions.filter((item) => item.subjectId !== form.subjectId),
     [subjectOptions, form.subjectId]
+  );
+  const editableGroupStudents = useMemo(
+    () =>
+      editableReports
+        .filter(hasMarkedQuestions)
+        .map((report) => {
+          const student = data.students.find((item) => item.id === report.studentId);
+          return student ? { ...student, reportId: report.id } : null;
+        })
+        .filter(Boolean)
+        .sort(compareStudents),
+    [data.students, editableReports]
   );
   const reportStudentOptions = useMemo(
     () => (form.gradeId ? data.students.filter((student) => student.gradeId === form.gradeId).sort(compareStudents) : []),
@@ -249,6 +268,27 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     setSelectedBulkIds([]);
     setGroupObservations('');
     setBulkRows(Object.fromEntries(students.map((student) => [student.id, createEmptyBulkRow(student.id)])));
+  }
+
+  function buildEditBulkRows(reports = []) {
+    return Object.fromEntries(
+      reports
+        .filter(hasMarkedQuestions)
+        .map((report) => [
+          report.studentId,
+          {
+            studentId: report.studentId,
+            convivencia: [...(report.convivencia || [])],
+            academica: [...(report.academica || [])],
+            observations: report.observations || ''
+          }
+        ])
+    );
+  }
+
+  function resetEditBulkState(reports = []) {
+    setSelectedEditBulkIds([]);
+    setEditBulkRows(buildEditBulkRows(reports));
   }
 
   function toggleValue(listName, value) {
@@ -280,6 +320,8 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     if (!next.gradeId || !next.subjectId) return;
     const result = await apiFetch(`/api/teacher/pre-reports?gradeId=${next.gradeId}&subjectId=${next.subjectId}`);
     setEditableReports(result.preReports);
+    resetEditBulkState(result.preReports);
+    return result.preReports;
   }
 
   function updateField(field, value) {
@@ -295,12 +337,17 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
       setCopyTargetSubjectId('');
       setAvailableStudents([]);
       setEditableReports([]);
+      setSelectedEdit('');
+      resetEditBulkState([]);
       resetBulkState([]);
     }
     if (field === 'subjectId') {
       next.studentId = '';
       setCopyTargetSubjectId('');
       setAvailableStudents([]);
+      setEditableReports([]);
+      setSelectedEdit('');
+      resetEditBulkState([]);
       resetBulkState([]);
     }
     setForm(next);
@@ -444,7 +491,10 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     setError('');
     setMessage('');
     try {
-      await loadEditable();
+      const reports = await loadEditable();
+      if (editMode === 'group' && !reports?.filter(hasMarkedQuestions).length) {
+        setMessage('No hay preinformes con dificultades marcadas para mostrar en modo grupal.');
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -469,6 +519,94 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
         });
       }
       setMessage(mode === 'delete' ? 'Preinforme eliminado.' : 'Preinforme actualizado.');
+      await loadEditable();
+      await onRefresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function toggleEditBulkQuestion(targetStudentId, section, question) {
+    const targetIds = selectedEditBulkIds.length ? selectedEditBulkIds : [targetStudentId];
+    const shouldAdd = targetIds.some((studentId) => !(editBulkRows[studentId]?.[section] || []).includes(question));
+
+    setEditBulkRows((current) => {
+      const next = { ...current };
+      for (const studentId of targetIds) {
+        const report = editableReports.find((item) => item.studentId === studentId);
+        const row = next[studentId] || createEmptyBulkRow(studentId, report?.observations || '');
+        const values = row[section] || [];
+        next[studentId] = {
+          ...row,
+          [section]: shouldAdd ? [...new Set([...values, question])] : values.filter((item) => item !== question)
+        };
+      }
+      return next;
+    });
+  }
+
+  function clearEditBulkMarks() {
+    setEditBulkRows((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([studentId, row]) => [
+          studentId,
+          {
+            ...row,
+            convivencia: [],
+            academica: []
+          }
+        ])
+      )
+    );
+  }
+
+  async function applyBulkEdit() {
+    setError('');
+    setMessage('');
+    try {
+      if (!editableGroupStudents.length) {
+        throw new Error('No hay preinformes grupales disponibles para editar.');
+      }
+
+      for (const student of editableGroupStudents) {
+        const report = editableReports.find((item) => item.id === student.reportId);
+        const row = editBulkRows[student.id];
+        if (!report || !row) continue;
+        await apiFetch(`/api/pre-reports/${report.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            convivencia: row.convivencia || [],
+            academica: row.academica || [],
+            observations: report.observations || ''
+          })
+        });
+      }
+
+      setMessage(`Se actualizaron ${editableGroupStudents.length} preinformes en modo grupal.`);
+      await loadEditable();
+      await onRefresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function deleteSelectedBulkReports() {
+    setError('');
+    setMessage('');
+    try {
+      if (!selectedEditBulkIds.length) {
+        throw new Error('Debes seleccionar al menos un estudiante para borrar sus preinformes.');
+      }
+
+      let deletedCount = 0;
+      for (const studentId of selectedEditBulkIds) {
+        const report = editableReports.find((item) => item.studentId === studentId);
+        if (!report) continue;
+        await apiFetch(`/api/pre-reports/${report.id}`, { method: 'DELETE' });
+        deletedCount += 1;
+      }
+
+      setMessage(`Se eliminaron ${deletedCount} preinformes seleccionados.`);
       await loadEditable();
       await onRefresh();
     } catch (err) {
@@ -903,6 +1041,13 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
             <div className="pt-3">
               <Row>
                 <Col md={4} className="mb-3">
+                  <Form.Label>Modo</Form.Label>
+                  <Form.Select value={editMode} onChange={(e) => setEditMode(e.target.value)}>
+                    <option value="individual">Individual</option>
+                    <option value="group">Grupal</option>
+                  </Form.Select>
+                </Col>
+                <Col md={4} className="mb-3">
                   <Form.Label>Grado</Form.Label>
                   <Form.Select value={form.gradeId} onChange={(e) => updateField('gradeId', e.target.value)}>
                     <option value="">Seleccione</option>
@@ -929,51 +1074,87 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                 </Col>
               </Row>
 
-              <Form.Group className="mb-3">
-                <Form.Label>Preinforme</Form.Label>
-                <Form.Select value={selectedEdit} onChange={(e) => loadReportToForm(e.target.value)}>
-                  <option value="">Seleccione</option>
-                  {editableReports.map((item) => {
-                    const student = data.students.find((studentItem) => studentItem.id === item.studentId);
-                    return (
-                      <option key={item.id} value={item.id}>
-                        {student?.lastName || ''} {student?.firstName || ''}
-                      </option>
-                    );
-                  })}
-                </Form.Select>
-              </Form.Group>
+              {editMode === 'individual' ? (
+                <>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Preinforme</Form.Label>
+                    <Form.Select value={selectedEdit} onChange={(e) => loadReportToForm(e.target.value)}>
+                      <option value="">Seleccione</option>
+                      {editableReports.map((item) => {
+                        const student = data.students.find((studentItem) => studentItem.id === item.studentId);
+                        return (
+                          <option key={item.id} value={item.id}>
+                            {student?.lastName || ''} {student?.firstName || ''}
+                          </option>
+                        );
+                      })}
+                    </Form.Select>
+                  </Form.Group>
 
-              <Checklist
-                title="Convivencia"
-                questions={data.questions.convivencia}
-                selected={form.convivencia}
-                onToggle={(value) => toggleValue('convivencia', value)}
-              />
-              <Checklist
-                title="Academicas"
-                questions={data.questions.academica}
-                selected={form.academica}
-                onToggle={(value) => toggleValue('academica', value)}
-              />
-              <RichTextEditor
-                label="Observaciones"
-                rows={5}
-                value={form.observations}
-                onChange={(nextValue) => updateField('observations', nextValue)}
-              />
+                  <Checklist
+                    title="Convivencia"
+                    questions={data.questions.convivencia}
+                    selected={form.convivencia}
+                    onToggle={(value) => toggleValue('convivencia', value)}
+                  />
+                  <Checklist
+                    title="Academicas"
+                    questions={data.questions.academica}
+                    selected={form.academica}
+                    onToggle={(value) => toggleValue('academica', value)}
+                  />
+                  <RichTextEditor
+                    label="Observaciones"
+                    rows={5}
+                    value={form.observations}
+                    onChange={(nextValue) => updateField('observations', nextValue)}
+                  />
+                </>
+              ) : editableGroupStudents.length ? (
+                <>
+                  <Alert variant="info">
+                    En modo grupal solo se muestran los estudiantes que tienen al menos una dificultad marcada.
+                  </Alert>
+                  <BulkMatrix
+                    students={editableGroupStudents}
+                    bulkRows={editBulkRows}
+                    selectedBulkIds={selectedEditBulkIds}
+                    setSelectedBulkIds={setSelectedEditBulkIds}
+                    onToggleQuestion={toggleEditBulkQuestion}
+                    onClearMarks={clearEditBulkMarks}
+                    data={data}
+                  />
+                </>
+              ) : (
+                <Card className="glass-card p-3 mb-3">
+                  <div className="text-muted mb-0">
+                    No hay preinformes con dificultades marcadas para este grado y asignatura.
+                  </div>
+                </Card>
+              )}
 
               {error ? <Alert variant="danger">{error}</Alert> : null}
               {message ? <Alert variant="success">{message}</Alert> : null}
 
-              <div className="d-flex gap-2">
-                <Button onClick={() => applyEdit('update')} disabled={!selectedEdit}>
-                  Guardar cambios
-                </Button>
-                <Button variant="outline-danger" onClick={() => applyEdit('delete')} disabled={!selectedEdit}>
-                  Borrar
-                </Button>
-              </div>
+              {editMode === 'individual' ? (
+                <div className="d-flex gap-2">
+                  <Button onClick={() => applyEdit('update')} disabled={!selectedEdit}>
+                    Guardar cambios
+                  </Button>
+                  <Button variant="outline-danger" onClick={() => applyEdit('delete')} disabled={!selectedEdit}>
+                    Borrar
+                  </Button>
+                </div>
+              ) : (
+                <div className="d-flex gap-2">
+                  <Button onClick={applyBulkEdit} disabled={!editableGroupStudents.length}>
+                    Guardar cambios grupales
+                  </Button>
+                  <Button variant="outline-danger" onClick={deleteSelectedBulkReports} disabled={!selectedEditBulkIds.length}>
+                    Borrar seleccionados
+                  </Button>
+                </div>
+              )}
             </div>
           </Tab>
         </Tabs>
