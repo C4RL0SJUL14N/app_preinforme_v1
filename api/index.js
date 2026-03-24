@@ -5,6 +5,7 @@ import {
   createPreReportService,
   createBulkPreReportsService,
   copyAssignmentsBetweenGradesService,
+  copyTeacherPreReportsBetweenSubjectsService,
   deleteAssignmentsByGradeService,
   deletePreReportsByPeriodService,
   deleteEntityService,
@@ -84,6 +85,14 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST' && pathname === '/api/pre-reports/batch') {
       return jsonResponse(res, 201, await createBulkPreReportsService(ensureSession(req), await readJsonBody(req)));
+    }
+
+    if (req.method === 'POST' && pathname === '/api/teacher/pre-reports/copy-subject') {
+      return jsonResponse(
+        res,
+        200,
+        await copyTeacherPreReportsBetweenSubjectsService(ensureSession(req), await readJsonBody(req))
+      );
     }
 
     if (req.method === 'PUT' && pathname.startsWith('/api/pre-reports/')) {

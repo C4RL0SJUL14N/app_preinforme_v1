@@ -10,6 +10,14 @@ const PDF_MODE_OPTIONS = [
   { value: 'individual', label: 'Un preinforme individual' }
 ];
 
+function compareStudents(a, b) {
+  return (
+    String(a?.lastName || '').localeCompare(String(b?.lastName || ''), 'es', { sensitivity: 'base' }) ||
+    String(a?.firstName || '').localeCompare(String(b?.firstName || ''), 'es', { sensitivity: 'base' }) ||
+    String(a?.id || '').localeCompare(String(b?.id || ''), 'es', { sensitivity: 'base' })
+  );
+}
+
 function getPdfDownloadName(mode) {
   if (mode === 'grade_student_zip') return 'preinformes.zip';
   if (mode === 'individual') return 'preinforme-individual.pdf';
@@ -213,6 +221,7 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
   const [teacherTab, setTeacherTab] = useState('create');
   const [createMode, setCreateMode] = useState('individual');
   const [reportPdfMode, setReportPdfMode] = useState('all');
+  const [copyTargetSubjectId, setCopyTargetSubjectId] = useState('');
   const [bulkRows, setBulkRows] = useState({});
   const [selectedBulkIds, setSelectedBulkIds] = useState([]);
   const [groupObservations, setGroupObservations] = useState('');
@@ -220,9 +229,13 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
   const gradeOptions = data.grades;
   const reportGradeOptions = data.directedGrades || [];
   const subjectOptions = useMemo(() => findOptions(data, form.gradeId), [data, form.gradeId]);
-  const studentOptions = availableStudents;
+  const studentOptions = useMemo(() => [...availableStudents].sort(compareStudents), [availableStudents]);
+  const copySubjectOptions = useMemo(
+    () => subjectOptions.filter((item) => item.subjectId !== form.subjectId),
+    [subjectOptions, form.subjectId]
+  );
   const reportStudentOptions = useMemo(
-    () => (form.gradeId ? data.students.filter((student) => student.gradeId === form.gradeId) : []),
+    () => (form.gradeId ? data.students.filter((student) => student.gradeId === form.gradeId).sort(compareStudents) : []),
     [data.students, form.gradeId]
   );
   const canGenerateGroupPdf =
@@ -279,12 +292,14 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     if (field === 'gradeId') {
       next.subjectId = '';
       next.studentId = '';
+      setCopyTargetSubjectId('');
       setAvailableStudents([]);
       setEditableReports([]);
       resetBulkState([]);
     }
     if (field === 'subjectId') {
       next.studentId = '';
+      setCopyTargetSubjectId('');
       setAvailableStudents([]);
       resetBulkState([]);
     }
@@ -394,6 +409,28 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
       if (!students.length) {
         setMessage(`Se guardaron ${result.created} preinformes grupales. Ya no quedan estudiantes disponibles en esta combinacion.`);
       }
+      await onRefresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function copyReportsToAnotherSubject() {
+    setError('');
+    setMessage('');
+    try {
+      const result = await apiFetch('/api/teacher/pre-reports/copy-subject', {
+        method: 'POST',
+        body: JSON.stringify({
+          periodId: form.periodId,
+          gradeId: form.gradeId,
+          sourceSubjectId: form.subjectId,
+          targetSubjectId: copyTargetSubjectId
+        })
+      });
+      setMessage(
+        `Se copiaron ${result.copied} preinformes a la asignatura destino.${result.skipped ? ` Se omitieron ${result.skipped} que ya existian.` : ''}`
+      );
       await onRefresh();
     } catch (err) {
       setError(err.message);
@@ -726,6 +763,37 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                 </Col>
               </Row>
 
+              <Card className="glass-card p-3 mb-3">
+                <div className="section-title mb-2">Copiar preinformes a otra asignatura del grupo</div>
+                <div className="text-muted mb-3">
+                  Copia los preinformes ya creados de esta asignatura hacia otra asignatura del mismo grado que tambien dictas.
+                </div>
+                <Row className="g-3 align-items-end">
+                  <Col md={6}>
+                    <Form.Label>Asignatura destino</Form.Label>
+                    <Form.Select value={copyTargetSubjectId} onChange={(e) => setCopyTargetSubjectId(e.target.value)}>
+                      <option value="">Seleccione</option>
+                      {copySubjectOptions.map((item) => (
+                        <option key={item.id} value={item.subjectId}>
+                          {item.subjectName}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                  <Col md={6}>
+                    <div className="d-grid">
+                      <Button
+                        variant="outline-primary"
+                        disabled={!form.periodId || !form.gradeId || !form.subjectId || !copyTargetSubjectId}
+                        onClick={copyReportsToAnotherSubject}
+                      >
+                        Copiar preinformes a otra asignatura
+                      </Button>
+                    </div>
+                  </Col>
+                </Row>
+              </Card>
+
               {createMode === 'individual' ? (
                 <Form onSubmit={handleCreate}>
                   <Row>
@@ -866,7 +934,7 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                     const student = data.students.find((studentItem) => studentItem.id === item.studentId);
                     return (
                       <option key={item.id} value={item.id}>
-                        {student?.firstName || ''} {student?.lastName || ''}
+                        {student?.lastName || ''} {student?.firstName || ''}
                       </option>
                     );
                   })}

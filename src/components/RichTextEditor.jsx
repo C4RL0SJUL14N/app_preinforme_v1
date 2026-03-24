@@ -89,6 +89,10 @@ export function RichTextEditor({ label, value, onChange, rows = 4, helperText })
   useEffect(() => {
     const nextHtml = normalizeIncomingValue(value);
     if (!editorRef.current) return;
+    if (document.activeElement === editorRef.current) {
+      lastAppliedValueRef.current = editorRef.current.innerHTML;
+      return;
+    }
     if (nextHtml !== lastAppliedValueRef.current && editorRef.current.innerHTML !== nextHtml) {
       editorRef.current.innerHTML = nextHtml;
     }
@@ -96,9 +100,8 @@ export function RichTextEditor({ label, value, onChange, rows = 4, helperText })
   }, [value]);
 
   function emitChange(nextHtml) {
-    const sanitized = sanitizeHtml(nextHtml);
-    lastAppliedValueRef.current = sanitized;
-    onChange(sanitized);
+    lastAppliedValueRef.current = nextHtml;
+    onChange(sanitizeHtml(nextHtml));
   }
 
   function runCommand(command, commandValue = null) {
@@ -168,6 +171,14 @@ export function RichTextEditor({ label, value, onChange, rows = 4, helperText })
           suppressContentEditableWarning
           style={{ minHeight: `${rows * 1.5}rem` }}
           onInput={(e) => emitChange(e.currentTarget.innerHTML)}
+          onBlur={(e) => {
+            const sanitized = sanitizeHtml(e.currentTarget.innerHTML);
+            if (e.currentTarget.innerHTML !== sanitized) {
+              e.currentTarget.innerHTML = sanitized;
+            }
+            lastAppliedValueRef.current = sanitized;
+            onChange(sanitized);
+          }}
           dangerouslySetInnerHTML={{ __html: lastAppliedValueRef.current }}
         />
       </div>
