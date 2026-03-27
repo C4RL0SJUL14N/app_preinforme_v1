@@ -1,5 +1,8 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Col, Form, Row, Table } from 'react-bootstrap';
 import { SectionCard } from './shared.jsx';
+
+const REPORT_PAGE_SIZE = 12;
 
 const PDF_MODE_OPTIONS = [
   { value: 'all', label: 'Todos los preinformes en un solo PDF' },
@@ -9,6 +12,14 @@ const PDF_MODE_OPTIONS = [
 ];
 
 function StudentStatusTable({ title, subtitle, rows, countLabel }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / REPORT_PAGE_SIZE));
+  const pageRows = useMemo(() => rows.slice((page - 1) * REPORT_PAGE_SIZE, page * REPORT_PAGE_SIZE), [page, rows]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows]);
+
   return (
     <Card className="glass-card p-3 h-100">
       <div className="mb-3">
@@ -28,15 +39,99 @@ function StudentStatusTable({ title, subtitle, rows, countLabel }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {pageRows.map((row) => (
             <tr key={row.studentId}>
               <td>{row.gradeName}</td>
               <td>{row.studentName}</td>
               <td>{row.totalReports ?? 0}</td>
             </tr>
           ))}
+          {!pageRows.length ? (
+            <tr>
+              <td colSpan={3} className="text-center text-muted py-4">
+                No hay registros para mostrar.
+              </td>
+            </tr>
+          ) : null}
         </tbody>
       </Table>
+      {rows.length > REPORT_PAGE_SIZE ? (
+        <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+          <div className="text-muted small">
+            Página {page} de {totalPages}
+          </div>
+          <div className="d-flex gap-2">
+            <button type="button" className="btn btn-outline-secondary btn-sm" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+              Anterior
+            </button>
+            <button type="button" className="btn btn-outline-secondary btn-sm" disabled={page === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>
+              Siguiente
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function TeachersWithoutReportsTable({ rows }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / REPORT_PAGE_SIZE));
+  const pageRows = useMemo(() => rows.slice((page - 1) * REPORT_PAGE_SIZE, page * REPORT_PAGE_SIZE), [page, rows]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows]);
+
+  return (
+    <Card className="glass-card p-3 mb-3">
+      <div className="mb-3">
+        <div className="section-title">Docentes sin preinformes</div>
+        <div className="text-muted">Se listan los grados y asignaturas donde aún no registran preinformes.</div>
+        <div className="text-muted small mt-2">{rows.length} docente{rows.length === 1 ? '' : 's'} pendiente{rows.length === 1 ? '' : 's'}</div>
+      </div>
+      <Table responsive striped hover>
+        <thead>
+          <tr>
+            <th>Docente</th>
+            <th>Grados</th>
+            <th>Asignaturas</th>
+            <th>Asignaciones pendientes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pageRows.map((row) => (
+            <tr key={row.teacherId}>
+              <td>{row.teacherName}</td>
+              <td>{row.gradeNames.join(', ')}</td>
+              <td>{row.subjectNames.join(', ')}</td>
+              <td>{row.missingAssignments}</td>
+            </tr>
+          ))}
+          {!pageRows.length ? (
+            <tr>
+              <td colSpan={4} className="text-center text-muted py-4">
+                No hay docentes pendientes para mostrar.
+              </td>
+            </tr>
+          ) : null}
+        </tbody>
+      </Table>
+      {rows.length > REPORT_PAGE_SIZE ? (
+        <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+          <div className="text-muted small">
+            Página {page} de {totalPages}
+          </div>
+          <div className="d-flex gap-2">
+            <button type="button" className="btn btn-outline-secondary btn-sm" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+              Anterior
+            </button>
+            <button type="button" className="btn btn-outline-secondary btn-sm" disabled={page === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>
+              Siguiente
+            </button>
+          </div>
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -54,70 +149,73 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
 
   return (
     <div>
-      <Row className="g-3 mb-3">
-        <Col lg={3}>
-          <SectionCard title="Periodo">
-            <Form.Select value={reportFilters.periodId} onChange={(e) => setReportFilters((c) => ({ ...c, periodId: e.target.value }))}>
-              <option value="">Todos</option>
-              {data.periods.map((period) => (
-                <option key={period.id} value={period.id}>
-                  {period.name}
-                </option>
-              ))}
-            </Form.Select>
-          </SectionCard>
-        </Col>
-        <Col lg={3}>
-          <SectionCard title="Grado">
-            <Form.Select
-              value={reportFilters.gradeId}
-              onChange={(e) =>
-                setReportFilters((current) => ({
-                  ...current,
-                  gradeId: e.target.value,
-                  studentId: ''
-                }))
-              }
-            >
-              <option value="">Todos</option>
-              {data.grades.map((grade) => (
-                <option key={grade.id} value={grade.id}>
-                  {grade.name}
-                </option>
-              ))}
-            </Form.Select>
-          </SectionCard>
-        </Col>
-        <Col lg={3}>
-          <SectionCard title="Docente">
-            <Form.Select value={reportFilters.teacherId} onChange={(e) => setReportFilters((c) => ({ ...c, teacherId: e.target.value }))}>
-              <option value="">Todos</option>
-              {data.teachers.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>
-                  {teacher.firstName} {teacher.lastName}
-                </option>
-              ))}
-            </Form.Select>
-          </SectionCard>
-        </Col>
-        <Col lg={3}>
-          <SectionCard title="Acciones" subtitle="Consulta, imprime o exporta.">
-            <div className="d-grid gap-2">
-              <Button onClick={loadSummary}>Cargar resumen</Button>
-              <Button variant="outline-dark" onClick={downloadPdf} disabled={!canGeneratePdf}>
-                Generar PDF
-              </Button>
-              <Button variant="outline-secondary" onClick={exportCsv}>
-                Exportar CSV
-              </Button>
-            </div>
-          </SectionCard>
-        </Col>
-      </Row>
-
+      <div className="sticky-action-bar">
+        <div className="sticky-action-card mb-3">
+          <Row className="g-3">
+            <Col lg={3}>
+              <SectionCard title="Período">
+                <Form.Select value={reportFilters.periodId} onChange={(e) => setReportFilters((c) => ({ ...c, periodId: e.target.value }))}>
+                  <option value="">Todos</option>
+                  {data.periods.map((period) => (
+                    <option key={period.id} value={period.id}>
+                      {period.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </SectionCard>
+            </Col>
+            <Col lg={3}>
+              <SectionCard title="Grado">
+                <Form.Select
+                  value={reportFilters.gradeId}
+                  onChange={(e) =>
+                    setReportFilters((current) => ({
+                      ...current,
+                      gradeId: e.target.value,
+                      studentId: ''
+                    }))
+                  }
+                >
+                  <option value="">Todos</option>
+                  {data.grades.map((grade) => (
+                    <option key={grade.id} value={grade.id}>
+                      {grade.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </SectionCard>
+            </Col>
+            <Col lg={3}>
+              <SectionCard title="Docente">
+                <Form.Select value={reportFilters.teacherId} onChange={(e) => setReportFilters((c) => ({ ...c, teacherId: e.target.value }))}>
+                  <option value="">Todos</option>
+                  {data.teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.firstName} {teacher.lastName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </SectionCard>
+            </Col>
+            <Col lg={3}>
+              <SectionCard title="Acciones" subtitle="Consulta, imprime o exporta.">
+                <div className="d-grid gap-2">
+                  <Button onClick={loadSummary}>Cargar resumen</Button>
+                  <Button variant="outline-dark" onClick={downloadPdf} disabled={!canGeneratePdf}>
+                    Generar PDF
+                  </Button>
+                  <Button variant="outline-secondary" onClick={exportCsv}>
+                    Exportar CSV
+                  </Button>
+                </div>
+              </SectionCard>
+            </Col>
+          </Row>
+        </div>
+      </div>
       <Row className="g-3 mb-3">
         <Col lg={4}>
-          <SectionCard title="Tipo de PDF" subtitle="Selecciona como quieres generar los preinformes.">
+          <SectionCard title="Tipo de PDF" subtitle="Selecciona cómo quieres generar los preinformes.">
             <Form.Select
               value={reportFilters.mode}
               onChange={(e) =>
@@ -211,46 +309,19 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
             <Col lg={6}>
               <StudentStatusTable
                 title="Estudiantes sin preinformes"
-                subtitle="No tienen ningun preinforme con los filtros aplicados."
+                subtitle="No tienen ningún preinforme con los filtros aplicados."
                 rows={reportSummary.studentsPending}
                 countLabel="Total pendientes"
               />
             </Col>
           </Row>
 
-          {isAdmin ? (
-            <Card className="glass-card p-3 mb-3">
-              <div className="mb-3">
-                <div className="section-title">Docentes sin preinformes</div>
-                <div className="text-muted">Se listan los grados y asignaturas donde aun no registran preinformes.</div>
-              </div>
-              <Table responsive striped hover>
-                <thead>
-                  <tr>
-                    <th>Docente</th>
-                    <th>Grados</th>
-                    <th>Asignaturas</th>
-                    <th>Asignaciones pendientes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportSummary.teachersWithoutReports.map((row) => (
-                    <tr key={row.teacherId}>
-                      <td>{row.teacherName}</td>
-                      <td>{row.gradeNames.join(', ')}</td>
-                      <td>{row.subjectNames.join(', ')}</td>
-                      <td>{row.missingAssignments}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card>
-          ) : null}
+          {isAdmin ? <TeachersWithoutReportsTable rows={reportSummary.teachersWithoutReports} /> : null}
 
         </>
       ) : (
         <SectionCard title="Resumen institucional" subtitle="Aplica filtros y consulta consolidado, estudiantes reportados y pendientes.">
-          <p className="text-muted mb-0">Todavia no has cargado un resumen para este conjunto de filtros.</p>
+          <p className="text-muted mb-0">Todavía no has cargado un resumen para este conjunto de filtros.</p>
         </SectionCard>
       )}
     </div>

@@ -13,13 +13,20 @@ import {
   exportAdminDetailCsvService,
   generatePdfService,
   getAdminSummaryService,
+  getTeacherUsageService,
   getBootstrapData,
+  getDirectorObservationPanelService,
   getEditablePreReports,
   getTeacherStudentsForAssignment,
   importConfigWorkbookService,
   loginService,
+  pingSessionService,
   reassignAssignmentsTeacherService,
+  saveTeacherSubjectGroupService,
+  saveDirectorObservationsService,
   saveEntityService,
+  switchSessionViewService,
+  deleteTeacherSubjectGroupService,
   updatePreReportService
 } from '../lib/service.js';
 import { jsonResponse, normalizeCell, readJsonBody, toCsv } from '../lib/utils.js';
@@ -62,6 +69,16 @@ export default async function handler(req, res) {
       return jsonResponse(res, 200, await getBootstrapData(ensureSession(req)));
     }
 
+    if (req.method === 'POST' && pathname === '/api/session/view') {
+      const session = ensureSession(req);
+      ensureAdmin(session);
+      return jsonResponse(res, 200, await switchSessionViewService(session, await readJsonBody(req)));
+    }
+
+    if (req.method === 'POST' && pathname === '/api/session/ping') {
+      return jsonResponse(res, 200, await pingSessionService(ensureSession(req), await readJsonBody(req)));
+    }
+
     if (req.method === 'GET' && pathname === '/api/teacher/students') {
       const session = ensureSession(req);
       const students = await getTeacherStudentsForAssignment(
@@ -79,6 +96,18 @@ export default async function handler(req, res) {
       return jsonResponse(res, 200, { preReports });
     }
 
+    if (req.method === 'GET' && pathname === '/api/teacher/director-observations') {
+      const session = ensureSession(req);
+      return jsonResponse(
+        res,
+        200,
+        await getDirectorObservationPanelService(session, {
+          periodId: searchParams.get('periodId'),
+          gradeId: searchParams.get('gradeId')
+        })
+      );
+    }
+
     if (req.method === 'POST' && pathname === '/api/pre-reports') {
       return jsonResponse(res, 201, await createPreReportService(ensureSession(req), await readJsonBody(req)));
     }
@@ -93,6 +122,19 @@ export default async function handler(req, res) {
         200,
         await copyTeacherPreReportsBetweenSubjectsService(ensureSession(req), await readJsonBody(req))
       );
+    }
+
+    if (req.method === 'POST' && pathname === '/api/teacher/director-observations') {
+      return jsonResponse(res, 200, await saveDirectorObservationsService(ensureSession(req), await readJsonBody(req)));
+    }
+
+    if (req.method === 'POST' && pathname === '/api/teacher/subject-groups') {
+      return jsonResponse(res, 200, await saveTeacherSubjectGroupService(ensureSession(req), await readJsonBody(req)));
+    }
+
+    if (req.method === 'DELETE' && pathname.startsWith('/api/teacher/subject-groups/')) {
+      const groupId = pathname.split('/').pop();
+      return jsonResponse(res, 200, await deleteTeacherSubjectGroupService(ensureSession(req), groupId));
     }
 
     if (req.method === 'PUT' && pathname.startsWith('/api/pre-reports/')) {
@@ -185,6 +227,12 @@ export default async function handler(req, res) {
           teacherId: searchParams.get('teacherId') || ''
         })
       );
+    }
+
+    if (req.method === 'GET' && pathname === '/api/admin/teacher-usage') {
+      const session = ensureSession(req);
+      ensureAdmin(session);
+      return jsonResponse(res, 200, await getTeacherUsageService(session));
     }
 
     if (req.method === 'POST' && pathname === '/api/admin/reports/export') {

@@ -1,15 +1,16 @@
 import { Button, Card } from 'react-bootstrap';
 
 export const MODULE_TITLES = {
-  Institutions: 'Modulo de institucion',
-  Sedes: 'Modulo de sedes',
-  Teachers: 'Modulo de docentes',
-  Subjects: 'Modulo de asignaturas',
-  Grades: 'Modulo de grados',
-  Students: 'Modulo de estudiantes',
-  GradeSubjects: 'Modulo de asignaciones',
-  Periods: 'Modulo de periodos',
-  Reports: 'Modulo de reportes'
+  Institutions: 'Módulo de institución',
+  Sedes: 'Módulo de sedes',
+  Teachers: 'Módulo de docentes',
+  Subjects: 'Módulo de asignaturas',
+  Grades: 'Módulo de grados',
+  Students: 'Módulo de estudiantes',
+  GradeSubjects: 'Módulo de asignaciones',
+  Periods: 'Módulo de períodos',
+  Activity: 'Módulo de actividad',
+  Reports: 'Módulo de reportes'
 };
 
 export const EMPTY_FORMS = {
@@ -25,16 +26,16 @@ export const EMPTY_FORMS = {
 
 export const MODULE_META = {
   Institutions: {
-    formTitle: 'Datos de la institucion',
-    formSubtitle: 'Actualiza el nombre visible de la institucion educativa.',
-    listTitle: 'Institucion configurada',
-    listSubtitle: 'Solo se maneja una institucion en esta aplicacion.'
+    formTitle: 'Datos de la institución',
+    formSubtitle: 'Actualiza el nombre visible de la institución educativa.',
+    listTitle: 'Institución configurada',
+    listSubtitle: 'Solo se maneja una institución en esta aplicación.'
   },
   Sedes: {
-    formTitle: 'Gestion de sede',
+    formTitle: 'Gestión de sede',
     formSubtitle: 'Crea, actualiza, desactiva o elimina sedes sin datos asociados.',
     listTitle: 'Sedes registradas',
-    listSubtitle: 'Al desactivar una sede se desactivan tambien sus datos dependientes.'
+    listSubtitle: 'Al desactivar una sede, se desactivan también sus datos dependientes.'
   },
   Teachers: {
     formTitle: 'Formulario docente',
@@ -49,7 +50,7 @@ export const MODULE_META = {
     listSubtitle: 'Consulta y edita las materias existentes.'
   },
   Grades: {
-    formTitle: 'Configuracion del grado',
+    formTitle: 'Configuración del grado',
     formSubtitle: 'Define la sede, el nombre del grado, su modalidad y su director de grupo.',
     listTitle: 'Grados creados',
     listSubtitle: 'Edita directores y estado del grado.'
@@ -61,16 +62,16 @@ export const MODULE_META = {
     listSubtitle: 'Consulta los estudiantes y su grado actual.'
   },
   GradeSubjects: {
-    formTitle: 'Asignacion academica',
+    formTitle: 'Asignación académica',
     formSubtitle: 'Relaciona grado, asignatura y docente responsable.',
     listTitle: 'Asignaciones vigentes',
-    listSubtitle: 'Cada fila representa una carga academica activa.'
+    listSubtitle: 'Cada fila representa una carga académica activa.'
   },
   Periods: {
-    formTitle: 'Periodo academico',
-    formSubtitle: 'Controla apertura, cierre y vigencia de periodos.',
-    listTitle: 'Periodos definidos',
-    listSubtitle: 'Administra el estado operativo de cada periodo.'
+    formTitle: 'Período académico',
+    formSubtitle: 'Controla la apertura, el cierre y la vigencia de los períodos.',
+    listTitle: 'Períodos definidos',
+    listSubtitle: 'Administra el estado operativo de cada período.'
   }
 };
 
@@ -80,7 +81,7 @@ export const IMPORT_SCHEMAS = {
     example: {
       id: 'docente1',
       firstName: 'Ana',
-      lastName: 'Perez',
+      lastName: 'Pérez',
       password: 'Clave123',
       isAdmin: 'FALSE',
       active: 'TRUE'
@@ -89,7 +90,7 @@ export const IMPORT_SCHEMAS = {
   Subjects: {
     fields: ['name', 'shortName', 'active'],
     example: {
-      name: 'Matematicas',
+      name: 'Matemáticas',
       shortName: 'MATE',
       active: 'TRUE'
     }
@@ -124,7 +125,7 @@ export const IMPORT_SCHEMAS = {
   Periods: {
     fields: ['name', 'status', 'active'],
     example: {
-      name: 'Periodo 1',
+      name: 'Período 1',
       status: 'open',
       active: 'TRUE'
     }
@@ -136,7 +137,7 @@ export function freshForm(module) {
 }
 
 export function toBooleanLabel(value) {
-  return value === 'TRUE' ? 'Si' : 'No';
+  return value === 'TRUE' ? 'Sí' : 'No';
 }
 
 export function fullTeacherName(teacher) {
@@ -160,27 +161,37 @@ export function SectionCard({ title, subtitle, children, actions }) {
 
 export function SaveActions({ onSave, onReset }) {
   return (
-    <div className="d-flex gap-2">
-      <Button onClick={onSave}>Guardar</Button>
-      <Button variant="outline-secondary" onClick={onReset}>
-        Nuevo
-      </Button>
+    <div className="sticky-action-bar">
+      <div className="sticky-action-card d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div className="sticky-action-meta">Las acciones principales permanecen visibles mientras navegas por el formulario.</div>
+        <div className="d-flex flex-wrap gap-2">
+          <Button onClick={onSave}>Guardar</Button>
+          <Button variant="outline-secondary" onClick={onReset}>
+            Nuevo
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
 
 export function SaveDeleteActions({ onSave, onReset, onDelete, canDelete }) {
   return (
-    <div className="d-flex gap-2">
-      <Button onClick={onSave}>Guardar</Button>
-      <Button variant="outline-secondary" onClick={onReset}>
-        Nuevo
-      </Button>
-      {canDelete ? (
-        <Button variant="outline-danger" onClick={onDelete}>
-          Eliminar
-        </Button>
-      ) : null}
+    <div className="sticky-action-bar">
+      <div className="sticky-action-card d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div className="sticky-action-meta">Las acciones principales permanecen visibles mientras navegas por el formulario.</div>
+        <div className="d-flex flex-wrap gap-2">
+          <Button onClick={onSave}>Guardar</Button>
+          <Button variant="outline-secondary" onClick={onReset}>
+            Nuevo
+          </Button>
+          {canDelete ? (
+            <Button variant="outline-danger" onClick={onDelete}>
+              Eliminar
+            </Button>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -214,7 +225,7 @@ export function getModuleStats(entityName, data) {
         { label: 'Asignaturas activas', value: activeCount(data.subjects) },
         { label: 'Asignaturas inactivas', value: inactiveCount(data.subjects), tone: 'inactive' },
         { label: 'Total materias', value: data.subjects.length },
-        { label: 'Con asignacion', value: new Set(data.gradeSubjects.map((item) => item.subjectId)).size }
+        { label: 'Con asignación', value: new Set(data.gradeSubjects.map((item) => item.subjectId)).size }
       ];
     case 'Grades':
       return [
@@ -240,10 +251,16 @@ export function getModuleStats(entityName, data) {
       ];
     case 'Periods':
       return [
-        { label: 'Periodos activos', value: activeCount(data.periods) },
-        { label: 'Periodos inactivos', value: inactiveCount(data.periods), tone: 'inactive' },
+        { label: 'Períodos activos', value: activeCount(data.periods) },
+        { label: 'Períodos inactivos', value: inactiveCount(data.periods), tone: 'inactive' },
         { label: 'Abiertos', value: data.periods.filter((item) => item.status === 'open').length },
         { label: 'Cerrados', value: data.periods.filter((item) => item.status === 'closed').length }
+      ];
+    case 'Activity':
+      return [
+        { label: 'Docentes activos ahora', value: data.teacherUsageSummary?.activeCount || 0 },
+        { label: 'Docentes registrados', value: data.teachers.length },
+        { label: 'Administradores', value: data.teachers.filter((item) => item.isAdmin === 'TRUE').length }
       ];
     default:
       return [];

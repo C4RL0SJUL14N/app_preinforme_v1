@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Col, Form, Row } from 'react-bootstrap';
 import { EntityModule } from './EntityModule.jsx';
 import { freshForm } from './shared.jsx';
@@ -20,6 +20,25 @@ const columns = [
 export function StudentsModule(props) {
   const [selectedSedeId, setSelectedSedeId] = useState('');
   const [selectedGradeId, setSelectedGradeId] = useState('');
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem('preinformes:admin:Students:listFilters');
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      setSelectedSedeId(parsed.selectedSedeId || '');
+      setSelectedGradeId(parsed.selectedGradeId || '');
+    } catch {
+      window.localStorage.removeItem('preinformes:admin:Students:listFilters');
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'preinformes:admin:Students:listFilters',
+      JSON.stringify({ selectedSedeId, selectedGradeId })
+    );
+  }, [selectedGradeId, selectedSedeId]);
 
   const visibleStudents = useMemo(() => {
     let rows = props.data.students;

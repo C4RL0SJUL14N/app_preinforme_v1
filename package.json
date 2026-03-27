@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "init:db": "node scripts/init-sheets.mjs",
     "seed:admin": "node scripts/seed-admin.mjs",
-    "migrate:students": "node scripts/migrate-students-from-excel.mjs"
+    "migrate:students": "node scripts/migrate-students-from-excel.mjs",
+    "manual:pdf": "node scripts/generate-user-manual-pdf.mjs"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",

@@ -1,9 +1,9 @@
 import { EntityModule } from './EntityModule.jsx';
 import { freshForm } from './shared.jsx';
 
-const fields = [{ name: 'name', label: 'Nombre de la institucion' }];
+const fields = [{ name: 'name', label: 'Nombre de la institución' }];
 
-const columns = [{ key: 'name', label: 'Institucion' }];
+const columns = [{ key: 'name', label: 'Institución' }];
 
 export function InstitutionsModule(props) {
   return (

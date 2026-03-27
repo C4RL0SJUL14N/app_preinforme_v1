@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Col, Form, Row } from 'react-bootstrap';
 import { EntityModule } from './EntityModule.jsx';
 import { freshForm } from './shared.jsx';
@@ -23,6 +23,25 @@ export function GradesModule(props) {
   const [selectedSedeId, setSelectedSedeId] = useState('');
   const [selectedGradeId, setSelectedGradeId] = useState('');
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem('preinformes:admin:Grades:listFilters');
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      setSelectedSedeId(parsed.selectedSedeId || '');
+      setSelectedGradeId(parsed.selectedGradeId || '');
+    } catch {
+      window.localStorage.removeItem('preinformes:admin:Grades:listFilters');
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'preinformes:admin:Grades:listFilters',
+      JSON.stringify({ selectedSedeId, selectedGradeId })
+    );
+  }, [selectedGradeId, selectedSedeId]);
+
   const occupiedDirectorIds = new Set(
     props.data.grades
       .filter(
@@ -44,7 +63,7 @@ export function GradesModule(props) {
     }));
 
   const educationModelOptions = [
-    { value: 'EDUCACION_TRADICIONAL', label: 'Educacion Tradicional' },
+    { value: 'EDUCACION_TRADICIONAL', label: 'Educación Tradicional' },
     { value: 'ESCUELA_NUEVA', label: 'Escuela Nueva' }
   ];
 

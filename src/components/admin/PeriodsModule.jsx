@@ -3,13 +3,13 @@ import { EntityModule } from './EntityModule.jsx';
 import { freshForm } from './shared.jsx';
 
 const fields = [
-  { name: 'name', label: 'Nombre periodo' },
+  { name: 'name', label: 'Nombre del período' },
   { name: 'status', label: 'Estado', type: 'enum', options: ['draft', 'open', 'closed'] },
   { name: 'active', label: 'Activo', type: 'boolean' }
 ];
 
 const columns = [
-  { key: 'name', label: 'Periodo' },
+  { key: 'name', label: 'Período' },
   { key: 'status', label: 'Estado' },
   { key: 'active', label: 'Activo' }
 ];
@@ -34,15 +34,15 @@ export function PeriodsModule(props) {
       />
 
       <Card className="glass-card p-3 mt-4">
-        <div className="section-title mb-2">Limpieza de preinformes por periodo</div>
+        <div className="section-title mb-2">Limpieza de preinformes por período</div>
         <div className="text-muted mb-3">
-          Selecciona un periodo de la tabla y usa esta accion para borrar todos los preinformes registrados en ese periodo.
+          Selecciona un período de la tabla y usa esta acción para borrar todos los preinformes registrados en ese período.
         </div>
         <div className="mb-3">
-          <strong>Periodo seleccionado:</strong> {selectedPeriod?.name || 'Ninguno'}
+          <strong>Período seleccionado:</strong> {selectedPeriod?.name || 'Ninguno'}
         </div>
         <Button variant="outline-danger" disabled={!selectedPeriod} onClick={() => props.onDeletePreReportsByPeriod?.(selectedPeriod)}>
-          Borrar todos los preinformes de este periodo
+          Borrar todos los preinformes de este período
         </Button>
       </Card>
     </>

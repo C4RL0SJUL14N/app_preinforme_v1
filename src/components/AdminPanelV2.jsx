@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Card, Col, Form, Row, Tab, Tabs } from 'react-bootstrap';
 import { apiFetch } from '../apiClient.js';
 import { AssignmentsModule } from './admin/AssignmentsModule.jsx';
+import { ActivityModule } from './admin/ActivityModule.jsx';
 import { GradesModule } from './admin/GradesModule.jsx';
 import { InstitutionsModule } from './admin/InstitutionsModule.jsx';
 import { PeriodsModule } from './admin/PeriodsModule.jsx';
@@ -24,6 +25,10 @@ function getFirstAdminFocusKey(moduleKey) {
   return firstField ? `${moduleKey}-${firstField}` : '';
 }
 
+function getStorageKey(moduleKey, scope) {
+  return `preinformes:admin:${moduleKey}:${scope}`;
+}
+
 function ImportSection({
   moduleKey,
   importFile,
@@ -38,7 +43,7 @@ function ImportSection({
     <Card className="glass-card p-3 mt-4">
       <div className="mb-3">
         <div className="section-title">Carga masiva</div>
-        <div className="text-muted">Importa datos para este modulo desde Excel o JSON.</div>
+        <div className="text-muted">Importa datos para este módulo desde Excel o JSON.</div>
       </div>
       {schema ? (
         <Row className="g-3 mb-4">
@@ -93,6 +98,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     studentId: ''
   });
   const [reportSummary, setReportSummary] = useState(null);
+  const [teacherUsageSummary, setTeacherUsageSummary] = useState(data.teacherUsageSummary || null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [showInactive, setShowInactive] = useState(false);
@@ -110,7 +116,44 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     setError('');
     setMessage('');
     lastFocusedFieldRef.current = '';
+    setTeacherUsageSummary(data.teacherUsageSummary || null);
   }, [activeModule, data.institutions]);
+
+  useEffect(() => {
+    setTeacherUsageSummary(data.teacherUsageSummary || null);
+  }, [data.teacherUsageSummary]);
+
+  useEffect(() => {
+    const storedPanelTab = window.localStorage.getItem(getStorageKey(activeModule, 'panelTab'));
+    const storedShowInactive = window.localStorage.getItem(getStorageKey(activeModule, 'showInactive'));
+    const storedReportFilters = window.localStorage.getItem(getStorageKey(activeModule, 'reportFilters'));
+
+    if (storedPanelTab) {
+      setPanelTab(storedPanelTab);
+    }
+    if (storedShowInactive !== null) {
+      setShowInactive(storedShowInactive === 'true');
+    }
+    if (storedReportFilters) {
+      try {
+        setReportFilters((current) => ({ ...current, ...JSON.parse(storedReportFilters) }));
+      } catch {
+        window.localStorage.removeItem(getStorageKey(activeModule, 'reportFilters'));
+      }
+    }
+  }, [activeModule]);
+
+  useEffect(() => {
+    window.localStorage.setItem(getStorageKey(activeModule, 'panelTab'), panelTab);
+  }, [activeModule, panelTab]);
+
+  useEffect(() => {
+    window.localStorage.setItem(getStorageKey(activeModule, 'showInactive'), String(showInactive));
+  }, [activeModule, showInactive]);
+
+  useEffect(() => {
+    window.localStorage.setItem(getStorageKey(activeModule, 'reportFilters'), JSON.stringify(reportFilters));
+  }, [activeModule, reportFilters]);
 
   function rememberFocusedField(event) {
     const focusKey = event.target?.dataset?.adminFocus;
@@ -160,7 +203,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
 
   async function deleteEntity(moduleKey) {
     if (!editingId) return;
-    const confirmed = window.confirm('Se eliminara este registro de la base de datos y no se podra recuperar desde la app. Desea continuar?');
+    const confirmed = window.confirm('Se eliminará este registro de la base de datos y no se podrá recuperar desde la aplicación. ¿Desea continuar?');
     if (!confirmed) return;
     setError('');
     setMessage('');
@@ -215,7 +258,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
   async function deletePreReportsByPeriod(period) {
     if (!period?.id) return;
     const confirmed = window.confirm(
-      `Advertencia del sistema:\n\nEsta accion eliminara de forma permanente todos los preinformes registrados en el periodo "${period.name}".\n\nLos datos borrados no podran recuperarse desde la aplicacion.\n\nDesea continuar?`
+      `Advertencia del sistema:\n\nEsta acción eliminará de forma permanente todos los preinformes registrados en el período "${period.name}".\n\nLos datos borrados no podrán recuperarse desde la aplicación.\n\n¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -226,7 +269,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         method: 'POST',
         body: JSON.stringify({ periodId: period.id })
       });
-      setMessage(`Se eliminaron ${result.deleted} preinformes del periodo ${result.periodName}.`);
+      setMessage(`Se eliminaron ${result.deleted} preinformes del período ${result.periodName}.`);
       await onRefresh();
     } catch (err) {
       setError(err.message);
@@ -237,7 +280,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     if (!gradeId) return;
     const grade = data.grades.find((item) => item.id === gradeId);
     const confirmed = window.confirm(
-      `Advertencia del sistema:\n\nEsta accion eliminara todas las asignaciones academicas del grado "${grade?.name || gradeId}".\n\nSi alguna asignacion ya tiene preinformes registrados, la operacion sera rechazada.\n\nDesea continuar?`
+      `Advertencia del sistema:\n\nEsta acción eliminará todas las asignaciones académicas del grado "${grade?.name || gradeId}".\n\nSi alguna asignación ya tiene preinformes registrados, la operación será rechazada.\n\n¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -260,7 +303,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     const sourceGrade = data.grades.find((item) => item.id === sourceGradeId);
     const targetGrade = data.grades.find((item) => item.id === targetGradeId);
     const confirmed = window.confirm(
-      `Confirmacion del sistema:\n\nSe copiaran las asignaciones activas de "${sourceGrade?.name || sourceGradeId}" hacia "${targetGrade?.name || targetGradeId}".\n\nLas asignaciones que ya existan en el grado destino no se duplicaran.\n\nDesea continuar?`
+      `Confirmación del sistema:\n\nSe copiarán las asignaciones activas de "${sourceGrade?.name || sourceGradeId}" hacia "${targetGrade?.name || targetGradeId}".\n\nLas asignaciones que ya existan en el grado destino no se duplicarán.\n\n¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -302,12 +345,12 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
 
         if (assignmentsForTeacher.length > 1) {
           const sameTeacherForAll = window.confirm(
-            `El docente "${teacherLabel}" no pertenece a la misma sede que el grado destino y aparece en ${assignmentsForTeacher.length} asignaciones.\n\nDeseas usar el mismo docente reemplazo para las demas asignaciones de este docente?`
+            `El docente "${teacherLabel}" no pertenece a la misma sede que el grado de destino y aparece en ${assignmentsForTeacher.length} asignaciones.\n\n¿Deseas usar el mismo docente de reemplazo para las demás asignaciones de este docente?`
           );
 
           if (sameTeacherForAll) {
             const replacementId = window.prompt(
-              `Indica el ID del docente que asumira las asignaciones de "${teacherLabel}" en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede destino:\n${teacherOptionsText}`
+              `Indica el ID del docente que asumirá las asignaciones de "${teacherLabel}" en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede de destino:\n${teacherOptionsText}`
             );
             if (!replacementId) {
               throw new Error('La copia fue cancelada porque falta indicar el docente reemplazo');
@@ -322,7 +365,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         for (const assignment of assignmentsForTeacher) {
           const subject = data.subjects.find((item) => item.id === assignment.subjectId);
           const replacementId = window.prompt(
-            `La asignatura "${subject?.name || assignment.subjectId}" del docente "${teacherLabel}" no puede copiarse porque ese docente no pertenece a la sede del grado destino.\n\nIndica el ID del docente que la asumira en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede destino:\n${teacherOptionsText}`
+            `La asignatura "${subject?.name || assignment.subjectId}" del docente "${teacherLabel}" no puede copiarse porque ese docente no pertenece a la sede del grado de destino.\n\nIndica el ID del docente que la asumirá en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede de destino:\n${teacherOptionsText}`
           );
           if (!replacementId) {
             throw new Error('La copia fue cancelada porque falta indicar el docente reemplazo');
@@ -336,7 +379,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         body: JSON.stringify({ sourceGradeId, targetGradeId, teacherOverrides })
       });
       setMessage(
-        `Se copiaron ${result.copied} asignaciones de ${result.sourceGradeName} a ${result.targetGradeName}. ${result.skipped ? `Se omitieron ${result.skipped} que ya existian.` : ''}`.trim()
+        `Se copiaron ${result.copied} asignaciones de ${result.sourceGradeName} a ${result.targetGradeName}. ${result.skipped ? `Se omitieron ${result.skipped} que ya existían.` : ''}`.trim()
       );
       await onRefresh();
     } catch (err) {
@@ -348,7 +391,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     if (!assignmentIds?.length || !teacherId) return;
     const teacher = data.teachers.find((item) => item.id === teacherId);
     const confirmed = window.confirm(
-      `Confirmacion del sistema:\n\nSe cambiaran ${assignmentIds.length} asignaciones al docente "${teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : teacherId}".\n\nDesea continuar?`
+      `Confirmación del sistema:\n\nSe cambiarán ${assignmentIds.length} asignaciones al docente "${teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : teacherId}".\n\n¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -405,6 +448,16 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     }
   }
 
+  async function loadTeacherUsage() {
+    setError('');
+    try {
+      const result = await apiFetch('/api/admin/teacher-usage');
+      setTeacherUsageSummary(result);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function downloadPdf() {
     setError('');
     setMessage('');
@@ -431,6 +484,31 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
   }
 
   const moduleStats = getModuleStats(activeModule, data);
+  const contextChips = useMemo(() => {
+    const chips = [
+      { label: 'Módulo', value: MODULE_TITLES[activeModule] || 'Módulo institucional' },
+      {
+        label: 'Pestaña',
+        value: panelTab === 'import' ? 'Carga masiva' : activeModule === 'Reports' ? 'Reportes' : activeModule === 'Activity' ? 'Actividad' : 'Gestión'
+      }
+    ];
+    if (activeModule === 'Reports') {
+      const selectedPeriod = data.periods.find((item) => item.id === reportFilters.periodId)?.name || 'Todos';
+      const selectedGrade = data.grades.find((item) => item.id === reportFilters.gradeId)?.name || 'Todos';
+      const selectedTeacher =
+        reportFilters.teacherId
+          ? `${data.teachers.find((item) => item.id === reportFilters.teacherId)?.firstName || ''} ${data.teachers.find((item) => item.id === reportFilters.teacherId)?.lastName || ''}`.trim()
+          : 'Todos';
+      chips.push(
+        { label: 'Período', value: selectedPeriod },
+        { label: 'Grado', value: selectedGrade },
+        { label: 'Docente', value: selectedTeacher || 'Todos' }
+      );
+    } else {
+      chips.push({ label: 'Inactivos', value: showInactive ? 'Visibles' : 'Ocultos' });
+    }
+    return chips;
+  }, [activeModule, data.grades, data.periods, data.teachers, panelTab, reportFilters, showInactive]);
   const sharedProps = { data, formState, setFormState, editingId, setEditingId, showInactive };
   const moduleContent = {
     Institutions: <InstitutionsModule {...sharedProps} onSave={() => saveEntity('Institutions')} />,
@@ -468,16 +546,29 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         downloadPdf={downloadPdf}
         isAdmin
       />
+    ),
+    Activity: (
+      <ActivityModule
+        usageSummary={teacherUsageSummary || data.teacherUsageSummary || { activeCount: 0, activeUsers: [] }}
+        onRefreshUsage={loadTeacherUsage}
+      />
     )
   }[activeModule];
 
   return (
     <div ref={panelRef} onFocusCapture={rememberFocusedField}>
-      <Card className="glass-card p-3 mb-4">
+      <Card className="glass-card page-context-bar p-3 mb-4">
         <div className="d-flex justify-content-between align-items-center">
           <div>
-            <p className="section-title mb-1">Administracion</p>
-            <h2 className="h4 mb-0">{MODULE_TITLES[activeModule] || 'Modulo institucional'}</h2>
+            <p className="section-title mb-1">Administración</p>
+            <h2 className="h4 mb-0">{MODULE_TITLES[activeModule] || 'Módulo institucional'}</h2>
+            <div className="context-chip-row">
+              {contextChips.map((chip) => (
+                <span key={chip.label} className="context-chip">
+                  <strong>{chip.label}:</strong> {chip.value}
+                </span>
+              ))}
+            </div>
           </div>
           {onBack ? (
             <Button variant="outline-dark" onClick={onBack}>
@@ -487,7 +578,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         </div>
       </Card>
 
-      {activeModule !== 'Reports' ? (
+      {activeModule !== 'Reports' && activeModule !== 'Activity' ? (
         <Row className="g-3 mb-3">
           {moduleStats.map((item) => (
             <Col md={4} xl={4} key={item.label}>
@@ -511,10 +602,10 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
       ) : null}
 
       <Tabs activeKey={panelTab} onSelect={(key) => setPanelTab(key || 'manual')}>
-        <Tab eventKey="manual" title={activeModule === 'Reports' ? 'Reportes' : 'Gestion del modulo'}>
+        <Tab eventKey="manual" title={activeModule === 'Reports' ? 'Reportes' : activeModule === 'Activity' ? 'Actividad en tiempo real' : 'Gestión del módulo'}>
           <div className="pt-3">{moduleContent}</div>
         </Tab>
-        {activeModule !== 'Reports' ? (
+        {activeModule !== 'Reports' && activeModule !== 'Activity' ? (
           <Tab eventKey="import" title="Carga masiva">
             <ImportSection
               moduleKey={activeModule}

@@ -32,6 +32,26 @@ export function AssignmentsModule(props) {
       ? `${currentAssignment.gradeId}::${currentAssignment.subjectId}`
       : '';
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem('preinformes:admin:GradeSubjects:listFilters');
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      setSelectedSedeId(parsed.selectedSedeId || '');
+      setSelectedListGradeId(parsed.selectedListGradeId || '');
+      setSelectedTeacherFilterId(parsed.selectedTeacherFilterId || '');
+    } catch {
+      window.localStorage.removeItem('preinformes:admin:GradeSubjects:listFilters');
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'preinformes:admin:GradeSubjects:listFilters',
+      JSON.stringify({ selectedSedeId, selectedListGradeId, selectedTeacherFilterId })
+    );
+  }, [selectedListGradeId, selectedSedeId, selectedTeacherFilterId]);
+
   const usedPairs = new Set(
     props.data.gradeSubjects
       .filter((item) => item.active !== 'FALSE')
