@@ -500,6 +500,39 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
   }, [activeModule, directorTab]);
 
   useEffect(() => {
+    if (activeModule !== 'prereports') {
+      return;
+    }
+    if (teacherTab !== 'edit' && teacherTab !== 'preview') {
+      return;
+    }
+    if (!form.gradeId || !form.subjectId) {
+      setEditableReports([]);
+      setSelectedEdit('');
+      setSelectedPreviewReportId('');
+      resetEditBulkState([]);
+      return;
+    }
+
+    let cancelled = false;
+    loadEditable(form)
+      .then((reports) => {
+        if (cancelled) return;
+        setSelectedEdit((current) => (current && reports?.some((item) => item.id === current) ? current : reports?.[0]?.id || ''));
+        setSelectedPreviewReportId((current) => (current && reports?.some((item) => item.id === current) ? current : reports?.[0]?.id || ''));
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err.message);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeModule, form.gradeId, form.subjectId, teacherTab]);
+
+  useEffect(() => {
     if (activeModule !== 'director-observations') {
       return;
     }
@@ -662,20 +695,37 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     return [...new Set([form.subjectId, ...selectedCreateSubjectIds].filter(Boolean))];
   }
 
-  async function createReportsForSubjects(subjectIds, createRequest) {
+  async function getVisiblePreReportsForSubject(subjectId) {
+    const result = await apiFetch(`/api/teacher/pre-reports?gradeId=${form.gradeId}&subjectId=${subjectId}`);
+    return Array.isArray(result.preReports) ? result.preReports : [];
+  }
+
+  async function createReportsForSubjects(subjectIds, createRequest, verifyRequest) {
     const subjectLabels = new Map(subjectOptions.map((item) => [item.subjectId, item.subjectName]));
     const results = {
       success: [],
+      warnings: [],
       failed: []
     };
 
     for (const subjectId of subjectIds) {
+      const subjectName = subjectLabels.get(subjectId) || subjectId;
       try {
         await createRequest(subjectId);
-        results.success.push(subjectLabels.get(subjectId) || subjectId);
+        if (verifyRequest) {
+          const verification = await verifyRequest(subjectId);
+          if (verification?.ok === false) {
+            results.warnings.push({
+              subjectName,
+              message: verification.message || 'Se guardó en la base de datos, pero la vista no mostró los registros esperados todavía.'
+            });
+            continue;
+          }
+        }
+        results.success.push(subjectName);
       } catch (err) {
         results.failed.push({
-          subjectName: subjectLabels.get(subjectId) || subjectId,
+          subjectName,
           message: err.message
         });
       }
@@ -685,19 +735,37 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
   }
 
   function buildCreateSummary(singleLabel, pluralLabel, results) {
-    if (results.success.length && !results.failed.length) {
+    if (results.success.length && !results.failed.length && !results.warnings.length) {
       return results.success.length === 1
         ? `${singleLabel} ${results.success[0]}.`
         : `${pluralLabel} ${results.success.length} asignaturas: ${results.success.join(', ')}.`;
     }
 
-    if (!results.success.length && results.failed.length) {
+    if (!results.success.length && !results.warnings.length && results.failed.length) {
       throw new Error(results.failed.map((item) => `${item.subjectName}: ${item.message}`).join(' | '));
     }
 
-    return `${pluralLabel} ${results.success.length} asignaturas (${results.success.join(', ')}). Se omitieron ${results.failed.length}: ${results.failed
-      .map((item) => `${item.subjectName} (${item.message})`)
-      .join('; ')}.`;
+    const parts = [];
+    if (results.success.length) {
+      parts.push(
+        results.success.length === 1
+          ? `${singleLabel} ${results.success[0]}.`
+          : `${pluralLabel} ${results.success.length} asignaturas: ${results.success.join(', ')}.`
+      );
+    }
+    if (results.warnings.length) {
+      parts.push(
+        `Verifica ${results.warnings.length} asignaturas en pantalla: ${results.warnings
+          .map((item) => `${item.subjectName} (${item.message})`)
+          .join('; ')}.`
+      );
+    }
+    if (results.failed.length) {
+      parts.push(
+        `Se omitieron ${results.failed.length}: ${results.failed.map((item) => `${item.subjectName} (${item.message})`).join('; ')}.`
+      );
+    }
+    return parts.join(' ');
   }
 
   async function handleCreate(event) {
@@ -706,11 +774,24 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
     setMessage('');
     try {
       const targetSubjectIds = getCreateTargetSubjectIds();
-      const results = await createReportsForSubjects(targetSubjectIds, async (subjectId) =>
-        apiFetch('/api/pre-reports', {
-          method: 'POST',
-          body: JSON.stringify({ ...form, subjectId })
-        })
+      const expectedStudentId = form.studentId;
+      const results = await createReportsForSubjects(
+        targetSubjectIds,
+        async (subjectId) =>
+          apiFetch('/api/pre-reports', {
+            method: 'POST',
+            body: JSON.stringify({ ...form, subjectId })
+          }),
+        async (subjectId) => {
+          const visibleReports = await getVisiblePreReportsForSubject(subjectId);
+          const isVisible = visibleReports.some((item) => item.studentId === expectedStudentId);
+          return isVisible
+            ? { ok: true }
+            : {
+                ok: false,
+                message: 'Se guardó, pero ese estudiante no quedó visible en Editar o Previsualizar para esta asignatura.'
+              };
+        }
       );
       setMessage(buildCreateSummary('Preinforme guardado en la asignatura', 'Se guardó el mismo preinforme en', results));
       setForm({
@@ -723,6 +804,11 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
         observations: ''
       });
       await loadStudents(form);
+      if (targetSubjectIds.includes(form.subjectId)) {
+        const reports = await loadEditable(form);
+        setSelectedEdit(reports?.[0]?.id || '');
+        setSelectedPreviewReportId(reports?.[0]?.id || '');
+      }
       await onRefresh();
     } catch (err) {
       setError(err.message);
@@ -796,16 +882,30 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
       }
 
       const targetSubjectIds = getCreateTargetSubjectIds();
-      const results = await createReportsForSubjects(targetSubjectIds, async (subjectId) =>
-        apiFetch('/api/pre-reports/batch', {
-          method: 'POST',
-          body: JSON.stringify({
-            periodId: form.periodId,
-            gradeId: form.gradeId,
-            subjectId,
-            rows
-          })
-        })
+      const expectedStudentIds = new Set(rows.map((item) => item.studentId));
+      const results = await createReportsForSubjects(
+        targetSubjectIds,
+        async (subjectId) =>
+          apiFetch('/api/pre-reports/batch', {
+            method: 'POST',
+            body: JSON.stringify({
+              periodId: form.periodId,
+              gradeId: form.gradeId,
+              subjectId,
+              rows
+            })
+          }),
+        async (subjectId) => {
+          const visibleReports = await getVisiblePreReportsForSubject(subjectId);
+          const visibleStudentIds = new Set(visibleReports.map((item) => item.studentId));
+          const missingStudents = [...expectedStudentIds].filter((studentId) => !visibleStudentIds.has(studentId));
+          return missingStudents.length
+            ? {
+                ok: false,
+                message: `Se guardó, pero no quedaron visibles ${missingStudents.length} estudiantes en esta asignatura.`
+              }
+            : { ok: true };
+        }
       );
       setMessage(
         buildCreateSummary(
@@ -815,6 +915,11 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
         )
       );
       const students = await loadStudents(form, { initializeBulk: true });
+      if (targetSubjectIds.includes(form.subjectId)) {
+        const reports = await loadEditable(form);
+        setSelectedEdit(reports?.[0]?.id || '');
+        setSelectedPreviewReportId(reports?.[0]?.id || '');
+      }
       if (!students.length) {
         setMessage((current) => `${current} Ya no quedan estudiantes disponibles en esta combinación.`);
       }
