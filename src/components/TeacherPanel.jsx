@@ -417,6 +417,13 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
         }),
     [data.students, editableReports, previewSearch]
   );
+  const previewReportsWithContent = useMemo(
+    () =>
+      previewReports.filter(
+        (report) => (report.convivencia || []).length || (report.academica || []).length || Boolean((report.observations || '').trim())
+      ),
+    [previewReports]
+  );
   const selectedPreviewReport = useMemo(
     () => editableReports.find((item) => item.id === selectedPreviewReportId) || previewReports[0] || null,
     [editableReports, previewReports, selectedPreviewReportId]
@@ -2214,7 +2221,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
               ) : (
                 <Card className="glass-card p-3 mb-3">
                   <div className="text-muted mb-0">
-                    No hay preinformes con dificultades marcadas para este grado y asignatura.
+                    {editableReports.length
+                      ? `Hay ${editableReports.length} preinformes cargados en esta asignatura, pero todos están vacíos: no tienen dificultades marcadas.`
+                      : 'No hay preinformes con dificultades marcadas para este grado y asignatura.'}
                   </div>
                 </Card>
               )}
@@ -2312,6 +2321,11 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                 <div className="text-muted mb-3">
                   La matriz muestra las marcas registradas para cada estudiante. Haz clic sobre una fila para ver sus observaciones.
                 </div>
+                {previewReports.length && !previewReportsWithContent.length ? (
+                  <Alert variant="warning">
+                    Hay {previewReports.length} preinformes cargados, pero todos están vacíos: no tienen marcas ni observaciones.
+                  </Alert>
+                ) : null}
                 {previewReports.length ? (
                   <PreviewMatrix
                     students={previewReports
