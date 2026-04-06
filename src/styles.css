@@ -596,6 +596,13 @@ body {
   font-weight: 600;
 }
 
+.bulk-student-index {
+  display: inline-block;
+  min-width: 1.8rem;
+  color: #5f7885;
+  font-weight: 700;
+}
+
 .bulk-name-col-solo {
   left: 0;
 }

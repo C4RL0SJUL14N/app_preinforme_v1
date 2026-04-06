@@ -11,6 +11,10 @@ const PDF_MODE_OPTIONS = [
   { value: 'individual', label: 'Un preinforme individual' }
 ];
 
+function formatIndexedLabel(index, label) {
+  return `${index + 1}. ${label}`;
+}
+
 function StudentStatusTable({ title, subtitle, rows, countLabel }) {
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(rows.length / REPORT_PAGE_SIZE));
@@ -39,10 +43,10 @@ function StudentStatusTable({ title, subtitle, rows, countLabel }) {
           </tr>
         </thead>
         <tbody>
-          {pageRows.map((row) => (
+          {pageRows.map((row, index) => (
             <tr key={row.studentId}>
               <td>{row.gradeName}</td>
-              <td>{row.studentName}</td>
+              <td>{formatIndexedLabel((page - 1) * REPORT_PAGE_SIZE + index, row.studentName)}</td>
               <td>{row.totalReports ?? 0}</td>
             </tr>
           ))}
@@ -242,9 +246,9 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
               disabled={reportFilters.mode !== 'individual'}
             >
               <option value="">Seleccione</option>
-              {filteredStudents.map((student) => (
+              {filteredStudents.map((student, index) => (
                 <option key={student.id} value={student.id}>
-                  {student.firstName} {student.lastName}
+                  {formatIndexedLabel(index, `${student.firstName} ${student.lastName}`.trim())}
                 </option>
               ))}
             </Form.Select>

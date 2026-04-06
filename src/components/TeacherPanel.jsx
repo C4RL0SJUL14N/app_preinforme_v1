@@ -44,6 +44,10 @@ function getTeacherStorageKey(scope, moduleKey = 'prereports') {
   return `preinformes:teacher:${moduleKey}:${scope}`;
 }
 
+function formatIndexedLabel(index, label) {
+  return `${index + 1}. ${label}`;
+}
+
 function Checklist({ title, questions, selected, onToggle }) {
   return (
     <Card className="glass-card p-3 mb-3">
@@ -219,7 +223,7 @@ function BulkMatrix({ students, bulkRows, selectedBulkIds, setSelectedBulkIds, o
             </tr>
           </thead>
           <tbody>
-            {students.map((student) => {
+            {students.map((student, index) => {
               const row = bulkRows[student.id] || createEmptyBulkRow(student.id);
               const isSelected = selectedBulkIds.includes(student.id);
               return (
@@ -236,7 +240,7 @@ function BulkMatrix({ students, bulkRows, selectedBulkIds, setSelectedBulkIds, o
                     />
                   </td>
                   <td className="bulk-sticky-col bulk-name-col">
-                    {student.firstName} {student.lastName}
+                    <span className="bulk-student-index">{index + 1}.</span> {student.firstName} {student.lastName}
                   </td>
                   {questionMeta.map((question) => {
                     const checked = includesComparableText(row[question.section], question.title);
@@ -281,7 +285,7 @@ function PreviewMatrix({ students, reports, selectedReportId, onSelectReport, da
           </tr>
         </thead>
         <tbody>
-          {students.map((student) => {
+          {students.map((student, index) => {
             const report = reportByStudentId.get(student.id);
             const isSelected = selectedReportId === report?.id;
             return (
@@ -294,7 +298,7 @@ function PreviewMatrix({ students, reports, selectedReportId, onSelectReport, da
                 }}
               >
                 <td className="bulk-sticky-col bulk-name-col bulk-name-col-solo">
-                  {student.lastName} {student.firstName}
+                  {formatIndexedLabel(index, `${student.lastName} ${student.firstName}`.trim())}
                 </td>
                 {questionMeta.map((question) => {
                   const checked = includesComparableText(report?.[question.section], question.title);
@@ -1502,9 +1506,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                 disabled={reportPdfMode !== 'individual'}
               >
                 <option value="">Seleccione</option>
-                {reportStudentOptions.map((item) => (
+                {reportStudentOptions.map((item, index) => (
                   <option key={item.id} value={item.id}>
-                    {item.firstName} {item.lastName}
+                    {formatIndexedLabel(index, `${item.firstName} ${item.lastName}`.trim())}
                   </option>
                 ))}
               </Form.Select>
@@ -1570,11 +1574,11 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                   />
                 ) : (
                   <div className="d-flex flex-column gap-3">
-                    {directorStudents.map((student) => (
+                    {directorStudents.map((student, index) => (
                       <Card key={student.studentId} className="glass-card p-3">
                         <div className="d-flex flex-wrap justify-content-between gap-2 mb-2">
                           <div>
-                            <strong>{`${student.lastName} ${student.firstName}`.trim()}</strong>
+                            <strong>{formatIndexedLabel(index, `${student.lastName} ${student.firstName}`.trim())}</strong>
                             <div className="text-muted small">{student.studentId}</div>
                           </div>
                           <div className="text-muted small d-flex align-items-center">
@@ -1667,9 +1671,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                   <Card className="glass-card p-3 h-100">
                     <div className="section-title">Estudiantes reportados</div>
                     {reportSummary.studentsReported.length ? (
-                      reportSummary.studentsReported.map((item) => (
+                      reportSummary.studentsReported.map((item, index) => (
                         <div key={item.studentId} className="d-flex justify-content-between mb-2">
-                          <span>{item.gradeName} · {item.studentName}</span>
+                          <span>{formatIndexedLabel(index, `${item.gradeName} · ${item.studentName}`)}</span>
                           <strong>{item.totalReports}</strong>
                         </div>
                       ))
@@ -1682,9 +1686,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                   <Card className="glass-card p-3 h-100">
                     <div className="section-title">Estudiantes sin preinformes</div>
                     {reportSummary.studentsPending.length ? (
-                      reportSummary.studentsPending.map((item) => (
+                      reportSummary.studentsPending.map((item, index) => (
                         <div key={item.studentId} className="d-flex justify-content-between mb-2">
-                          <span>{item.gradeName} · {item.studentName}</span>
+                          <span>{formatIndexedLabel(index, `${item.gradeName} · ${item.studentName}`)}</span>
                           <strong>Pendiente</strong>
                         </div>
                       ))
@@ -1768,9 +1772,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                   <Form.Label>Estudiante</Form.Label>
                   <Form.Select value={directorSelectedStudentId} onChange={(e) => setDirectorSelectedStudentId(e.target.value)}>
                     <option value="">Seleccione</option>
-                    {directorStudents.map((student) => (
+                    {directorStudents.map((student, index) => (
                       <option key={student.studentId} value={student.studentId}>
-                        {student.lastName} {student.firstName}
+                        {formatIndexedLabel(index, `${student.lastName} ${student.firstName}`.trim())}
                       </option>
                     ))}
                   </Form.Select>
@@ -1803,12 +1807,12 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
               <Card className="glass-card p-3 mb-3">
                 <div className="section-title mb-2">Selecciona los estudiantes</div>
                 <div className="d-flex flex-column gap-2">
-                  {directorStudents.map((student) => (
+                  {directorStudents.map((student, index) => (
                     <Form.Check
                       key={student.studentId}
                       type="checkbox"
                       id={`director-group-${student.studentId}`}
-                      label={`${student.lastName} ${student.firstName} (${student.studentId})`}
+                      label={formatIndexedLabel(index, `${student.lastName} ${student.firstName} (${student.studentId})`)}
                       checked={directorSelectedBulkIds.includes(student.studentId)}
                       onChange={(e) =>
                         setDirectorSelectedBulkIds((current) =>
@@ -1837,14 +1841,14 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                 <Card className="glass-card p-3 h-100">
                   <div className="section-title mb-2">Estudiantes con observación</div>
                   <div className="d-flex flex-column gap-2">
-                    {directorStudents.map((student) => (
+                    {directorStudents.map((student, index) => (
                       <button
                         key={student.studentId}
                         type="button"
                         className={`module-tile w-100 text-start ${directorPreviewStudentId === student.studentId ? 'module-blue' : 'module-slate'}`}
                         onClick={() => setDirectorPreviewStudentId(student.studentId)}
                       >
-                        <div className="module-tile-title">{`${student.lastName} ${student.firstName}`.trim()}</div>
+                        <div className="module-tile-title">{formatIndexedLabel(index, `${student.lastName} ${student.firstName}`.trim())}</div>
                         <div className="module-tile-body">{student.studentId}</div>
                       </button>
                     ))}
@@ -2031,9 +2035,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
                       </div>
                       <Form.Select className="mt-2" value={form.studentId} onChange={(e) => updateField('studentId', e.target.value)} required>
                         <option value="">Seleccione</option>
-                        {studentOptions.map((item) => (
+                        {studentOptions.map((item, index) => (
                           <option key={item.id} value={item.id}>
-                            {item.firstName} {item.lastName}
+                            {formatIndexedLabel(index, `${item.firstName} ${item.lastName}`.trim())}
                           </option>
                         ))}
                       </Form.Select>
