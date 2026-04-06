@@ -11,6 +11,20 @@ const PDF_MODE_OPTIONS = [
   { value: 'individual', label: 'Un preinforme individual' }
 ];
 
+function normalizeComparableText(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function includesComparableText(items, expected) {
+  const normalizedExpected = normalizeComparableText(expected);
+  return (Array.isArray(items) ? items : []).some((item) => normalizeComparableText(item) === normalizedExpected);
+}
+
 function compareStudents(a, b) {
   return (
     String(a?.lastName || '').localeCompare(String(b?.lastName || ''), 'es', { sensitivity: 'base' }) ||
@@ -41,7 +55,7 @@ function Checklist({ title, questions, selected, onToggle }) {
           id={`${title}-${question}`}
           className="mb-2"
           label={question}
-          checked={selected.includes(question)}
+          checked={includesComparableText(selected, question)}
           onChange={() => onToggle(question)}
         />
       ))}
@@ -225,7 +239,7 @@ function BulkMatrix({ students, bulkRows, selectedBulkIds, setSelectedBulkIds, o
                     {student.firstName} {student.lastName}
                   </td>
                   {questionMeta.map((question) => {
-                    const checked = (row[question.section] || []).includes(question.title);
+                    const checked = includesComparableText(row[question.section], question.title);
                     return (
                       <td key={`${student.id}-${question.key}`} className="bulk-question-cell">
                         <button
@@ -283,7 +297,7 @@ function PreviewMatrix({ students, reports, selectedReportId, onSelectReport, da
                   {student.lastName} {student.firstName}
                 </td>
                 {questionMeta.map((question) => {
-                  const checked = Boolean((report?.[question.section] || []).includes(question.title));
+                  const checked = includesComparableText(report?.[question.section], question.title);
                   return (
                     <td key={`${student.id}-${question.key}`} className="bulk-question-cell">
                       <div className={`bulk-mark-btn ${checked ? 'is-marked' : ''}`}>{checked ? 'X' : ''}</div>
@@ -607,8 +621,8 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
   function toggleValue(listName, value) {
     setForm((current) => ({
       ...current,
-      [listName]: current[listName].includes(value)
-        ? current[listName].filter((item) => item !== value)
+      [listName]: includesComparableText(current[listName], value)
+        ? current[listName].filter((item) => normalizeComparableText(item) !== normalizeComparableText(value))
         : [...current[listName], value]
     }));
   }
@@ -830,7 +844,7 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
 
   function toggleBulkQuestion(targetStudentId, section, question) {
     const targetIds = selectedBulkIds.length ? selectedBulkIds : [targetStudentId];
-    const shouldAdd = targetIds.some((studentId) => !(bulkRows[studentId]?.[section] || []).includes(question));
+    const shouldAdd = targetIds.some((studentId) => !includesComparableText(bulkRows[studentId]?.[section], question));
 
     setBulkRows((current) => {
       const next = { ...current };
@@ -839,7 +853,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
         const values = row[section] || [];
         next[studentId] = {
           ...row,
-          [section]: shouldAdd ? [...new Set([...values, question])] : values.filter((item) => item !== question)
+          [section]: shouldAdd
+            ? [...new Set([...values, question])]
+            : values.filter((item) => normalizeComparableText(item) !== normalizeComparableText(question))
         };
       }
       return next;
@@ -1018,7 +1034,7 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
 
   function toggleEditBulkQuestion(targetStudentId, section, question) {
     const targetIds = selectedEditBulkIds.length ? selectedEditBulkIds : [targetStudentId];
-    const shouldAdd = targetIds.some((studentId) => !(editBulkRows[studentId]?.[section] || []).includes(question));
+    const shouldAdd = targetIds.some((studentId) => !includesComparableText(editBulkRows[studentId]?.[section], question));
 
     setEditBulkRows((current) => {
       const next = { ...current };
@@ -1028,7 +1044,9 @@ export function TeacherPanel({ data, onRefresh, session, activeModule = 'prerepo
         const values = row[section] || [];
         next[studentId] = {
           ...row,
-          [section]: shouldAdd ? [...new Set([...values, question])] : values.filter((item) => item !== question)
+          [section]: shouldAdd
+            ? [...new Set([...values, question])]
+            : values.filter((item) => normalizeComparableText(item) !== normalizeComparableText(question))
         };
       }
       return next;
