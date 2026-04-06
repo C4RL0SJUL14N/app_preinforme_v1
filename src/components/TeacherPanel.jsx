@@ -214,6 +214,7 @@ function BulkMatrix({ students, bulkRows, selectedBulkIds, setSelectedBulkIds, o
                   onChange={(e) => setSelectedBulkIds(e.target.checked ? students.map((item) => item.id) : [])}
                 />
               </th>
+              <th className="bulk-sticky-col bulk-index-col">#</th>
               <th className="bulk-sticky-col bulk-name-col">Estudiante</th>
               {questionMeta.map((question) => (
                 <th key={question.key} className={`bulk-question-head bulk-question-head-${question.section}`} title={question.title}>
@@ -239,8 +240,9 @@ function BulkMatrix({ students, bulkRows, selectedBulkIds, setSelectedBulkIds, o
                       }
                     />
                   </td>
+                  <td className="bulk-sticky-col bulk-index-col">{index + 1}</td>
                   <td className="bulk-sticky-col bulk-name-col">
-                    <span className="bulk-student-index">{index + 1}.</span> {student.firstName} {student.lastName}
+                    <span className="bulk-student-name">{student.firstName} {student.lastName}</span>
                   </td>
                   {questionMeta.map((question) => {
                     const checked = includesComparableText(row[question.section], question.title);
@@ -276,6 +278,7 @@ function PreviewMatrix({ students, reports, selectedReportId, onSelectReport, da
       <table className="table table-bordered align-middle bulk-matrix-table">
         <thead>
           <tr>
+            <th className="bulk-sticky-col bulk-index-col bulk-index-col-solo">#</th>
             <th className="bulk-sticky-col bulk-name-col bulk-name-col-solo">Estudiante</th>
             {questionMeta.map((question) => (
               <th key={question.key} className={`bulk-question-head bulk-question-head-${question.section}`} title={question.title}>
@@ -297,8 +300,9 @@ function PreviewMatrix({ students, reports, selectedReportId, onSelectReport, da
                   if (report) onSelectReport(report.id);
                 }}
               >
+                <td className="bulk-sticky-col bulk-index-col bulk-index-col-solo">{index + 1}</td>
                 <td className="bulk-sticky-col bulk-name-col bulk-name-col-solo">
-                  {formatIndexedLabel(index, `${student.lastName} ${student.firstName}`.trim())}
+                  <span className="bulk-student-name">{`${student.lastName} ${student.firstName}`.trim()}</span>
                 </td>
                 {questionMeta.map((question) => {
                   const checked = includesComparableText(report?.[question.section], question.title);

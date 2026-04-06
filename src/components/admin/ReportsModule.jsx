@@ -37,6 +37,7 @@ function StudentStatusTable({ title, subtitle, rows, countLabel }) {
       <Table responsive striped hover>
         <thead>
           <tr>
+            <th>#</th>
             <th>Grado</th>
             <th>Estudiante</th>
             <th>Total</th>
@@ -45,14 +46,15 @@ function StudentStatusTable({ title, subtitle, rows, countLabel }) {
         <tbody>
           {pageRows.map((row, index) => (
             <tr key={row.studentId}>
+              <td>{(page - 1) * REPORT_PAGE_SIZE + index + 1}</td>
               <td>{row.gradeName}</td>
-              <td>{formatIndexedLabel((page - 1) * REPORT_PAGE_SIZE + index, row.studentName)}</td>
+              <td className="text-start">{row.studentName}</td>
               <td>{row.totalReports ?? 0}</td>
             </tr>
           ))}
           {!pageRows.length ? (
             <tr>
-              <td colSpan={3} className="text-center text-muted py-4">
+              <td colSpan={4} className="text-center text-muted py-4">
                 No hay registros para mostrar.
               </td>
             </tr>

@@ -589,22 +589,33 @@ body {
   max-width: 54px;
 }
 
-.bulk-name-col {
+.bulk-index-col {
   left: 54px;
+  min-width: 54px;
+  max-width: 54px;
+  text-align: center;
+  font-weight: 700;
+  color: #5f7885;
+}
+
+.bulk-index-col-solo {
+  left: 0;
+}
+
+.bulk-name-col {
+  left: 108px;
   min-width: 240px;
   text-align: left;
   font-weight: 600;
 }
 
-.bulk-student-index {
-  display: inline-block;
-  min-width: 1.8rem;
-  color: #5f7885;
-  font-weight: 700;
+.bulk-student-name {
+  display: block;
+  text-align: left;
 }
 
 .bulk-name-col-solo {
-  left: 0;
+  left: 54px;
 }
 
 .bulk-question-head {
