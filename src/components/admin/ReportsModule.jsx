@@ -139,7 +139,7 @@ function TeachersWithoutReportsTable({ rows }) {
   );
 }
 
-export function ReportsModule({ data, reportFilters, setReportFilters, reportSummary, loadSummary, exportCsv, downloadPdf, isAdmin }) {
+export function ReportsModule({ data, reportFilters, setReportFilters, reportSummary, loadSummary, exportCsv, downloadPdf, downloadSummaryPdf, isAdmin }) {
   const filteredGrades = reportFilters.sedeId ? data.grades.filter((grade) => grade.sedeId === reportFilters.sedeId) : data.grades;
   const filteredTeachers = reportFilters.sedeId ? data.teachers.filter((teacher) => teacher.sedeId === reportFilters.sedeId) : data.teachers;
   const filteredStudents = reportFilters.gradeId
@@ -231,6 +231,9 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
               <SectionCard title="Acciones" subtitle="Consulta, imprime o exporta.">
                 <div className="d-grid gap-2">
                   <Button onClick={loadSummary}>Cargar resumen</Button>
+                  <Button variant="outline-primary" onClick={downloadSummaryPdf}>
+                    Exportar resumen PDF
+                  </Button>
                   <Button variant="outline-dark" onClick={downloadPdf} disabled={!canGeneratePdf}>
                     Generar PDF
                   </Button>

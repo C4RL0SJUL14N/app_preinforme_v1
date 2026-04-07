@@ -486,6 +486,31 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     }
   }
 
+  async function downloadSummaryPdf() {
+    setError('');
+    setMessage('');
+    try {
+      const blob = await apiFetch('/api/pdf', {
+        method: 'POST',
+        body: JSON.stringify({
+          periodId: reportFilters.periodId,
+          sedeId: reportFilters.sedeId,
+          gradeId: reportFilters.gradeId,
+          teacherId: reportFilters.teacherId,
+          mode: 'admin_summary'
+        })
+      });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'resumen-reportes.pdf';
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const moduleStats = getModuleStats(activeModule, data);
   const contextChips = useMemo(() => {
     const chips = [
@@ -549,6 +574,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         loadSummary={loadSummary}
         exportCsv={exportCsv}
         downloadPdf={downloadPdf}
+        downloadSummaryPdf={downloadSummaryPdf}
         isAdmin
       />
     ),
