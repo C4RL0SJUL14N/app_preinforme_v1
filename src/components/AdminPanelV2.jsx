@@ -17,6 +17,7 @@ function getPdfDownloadName(filters) {
   if (filters.mode === 'grade_student_zip') return 'preinformes.zip';
   if (filters.mode === 'individual') return 'preinforme-individual.pdf';
   if (filters.mode === 'grade_single_pdf') return 'preinformes-grado.pdf';
+  if (filters.mode === 'reported_teachers_summary') return 'docentes-reportaron.pdf';
   return 'preinformes.pdf';
 }
 
@@ -43,7 +44,7 @@ function ImportSection({
     <Card className="glass-card p-3 mt-4">
       <div className="mb-3">
         <div className="section-title">Carga masiva</div>
-        <div className="text-muted">Importa datos para este módulo desde Excel o JSON.</div>
+        <div className="text-muted">Importa datos para este mÃ³dulo desde Excel o JSON.</div>
       </div>
       {schema ? (
         <Row className="g-3 mb-4">
@@ -92,6 +93,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
   const [sheetText, setSheetText] = useState('[{"name":"","active":"TRUE"}]');
   const [reportFilters, setReportFilters] = useState({
     periodId: '',
+    sedeId: '',
     gradeId: '',
     teacherId: '',
     mode: 'all',
@@ -203,7 +205,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
 
   async function deleteEntity(moduleKey) {
     if (!editingId) return;
-    const confirmed = window.confirm('Se eliminará este registro de la base de datos y no se podrá recuperar desde la aplicación. ¿Desea continuar?');
+    const confirmed = window.confirm('Se eliminarÃ¡ este registro de la base de datos y no se podrÃ¡ recuperar desde la aplicaciÃ³n. Â¿Desea continuar?');
     if (!confirmed) return;
     setError('');
     setMessage('');
@@ -258,7 +260,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
   async function deletePreReportsByPeriod(period) {
     if (!period?.id) return;
     const confirmed = window.confirm(
-      `Advertencia del sistema:\n\nEsta acción eliminará de forma permanente todos los preinformes registrados en el período "${period.name}".\n\nLos datos borrados no podrán recuperarse desde la aplicación.\n\n¿Desea continuar?`
+      `Advertencia del sistema:\n\nEsta acciÃ³n eliminarÃ¡ de forma permanente todos los preinformes registrados en el perÃ­odo "${period.name}".\n\nLos datos borrados no podrÃ¡n recuperarse desde la aplicaciÃ³n.\n\nÂ¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -269,7 +271,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         method: 'POST',
         body: JSON.stringify({ periodId: period.id })
       });
-      setMessage(`Se eliminaron ${result.deleted} preinformes del período ${result.periodName}.`);
+      setMessage(`Se eliminaron ${result.deleted} preinformes del perÃ­odo ${result.periodName}.`);
       await onRefresh();
     } catch (err) {
       setError(err.message);
@@ -280,7 +282,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     if (!gradeId) return;
     const grade = data.grades.find((item) => item.id === gradeId);
     const confirmed = window.confirm(
-      `Advertencia del sistema:\n\nEsta acción eliminará todas las asignaciones académicas del grado "${grade?.name || gradeId}".\n\nSi alguna asignación ya tiene preinformes registrados, la operación será rechazada.\n\n¿Desea continuar?`
+      `Advertencia del sistema:\n\nEsta acciÃ³n eliminarÃ¡ todas las asignaciones acadÃ©micas del grado "${grade?.name || gradeId}".\n\nSi alguna asignaciÃ³n ya tiene preinformes registrados, la operaciÃ³n serÃ¡ rechazada.\n\nÂ¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -303,7 +305,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     const sourceGrade = data.grades.find((item) => item.id === sourceGradeId);
     const targetGrade = data.grades.find((item) => item.id === targetGradeId);
     const confirmed = window.confirm(
-      `Confirmación del sistema:\n\nSe copiarán las asignaciones activas de "${sourceGrade?.name || sourceGradeId}" hacia "${targetGrade?.name || targetGradeId}".\n\nLas asignaciones que ya existan en el grado destino no se duplicarán.\n\n¿Desea continuar?`
+      `ConfirmaciÃ³n del sistema:\n\nSe copiarÃ¡n las asignaciones activas de "${sourceGrade?.name || sourceGradeId}" hacia "${targetGrade?.name || targetGradeId}".\n\nLas asignaciones que ya existan en el grado destino no se duplicarÃ¡n.\n\nÂ¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -345,12 +347,12 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
 
         if (assignmentsForTeacher.length > 1) {
           const sameTeacherForAll = window.confirm(
-            `El docente "${teacherLabel}" no pertenece a la misma sede que el grado de destino y aparece en ${assignmentsForTeacher.length} asignaciones.\n\n¿Deseas usar el mismo docente de reemplazo para las demás asignaciones de este docente?`
+            `El docente "${teacherLabel}" no pertenece a la misma sede que el grado de destino y aparece en ${assignmentsForTeacher.length} asignaciones.\n\nÂ¿Deseas usar el mismo docente de reemplazo para las demÃ¡s asignaciones de este docente?`
           );
 
           if (sameTeacherForAll) {
             const replacementId = window.prompt(
-              `Indica el ID del docente que asumirá las asignaciones de "${teacherLabel}" en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede de destino:\n${teacherOptionsText}`
+              `Indica el ID del docente que asumirÃ¡ las asignaciones de "${teacherLabel}" en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede de destino:\n${teacherOptionsText}`
             );
             if (!replacementId) {
               throw new Error('La copia fue cancelada porque falta indicar el docente reemplazo');
@@ -365,7 +367,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         for (const assignment of assignmentsForTeacher) {
           const subject = data.subjects.find((item) => item.id === assignment.subjectId);
           const replacementId = window.prompt(
-            `La asignatura "${subject?.name || assignment.subjectId}" del docente "${teacherLabel}" no puede copiarse porque ese docente no pertenece a la sede del grado de destino.\n\nIndica el ID del docente que la asumirá en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede de destino:\n${teacherOptionsText}`
+            `La asignatura "${subject?.name || assignment.subjectId}" del docente "${teacherLabel}" no puede copiarse porque ese docente no pertenece a la sede del grado de destino.\n\nIndica el ID del docente que la asumirÃ¡ en "${targetGrade?.name || targetGradeId}".\n\nDocentes disponibles en la sede de destino:\n${teacherOptionsText}`
           );
           if (!replacementId) {
             throw new Error('La copia fue cancelada porque falta indicar el docente reemplazo');
@@ -379,7 +381,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         body: JSON.stringify({ sourceGradeId, targetGradeId, teacherOverrides })
       });
       setMessage(
-        `Se copiaron ${result.copied} asignaciones de ${result.sourceGradeName} a ${result.targetGradeName}. ${result.skipped ? `Se omitieron ${result.skipped} que ya existían.` : ''}`.trim()
+        `Se copiaron ${result.copied} asignaciones de ${result.sourceGradeName} a ${result.targetGradeName}. ${result.skipped ? `Se omitieron ${result.skipped} que ya existÃ­an.` : ''}`.trim()
       );
       await onRefresh();
     } catch (err) {
@@ -391,7 +393,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     if (!assignmentIds?.length || !teacherId) return;
     const teacher = data.teachers.find((item) => item.id === teacherId);
     const confirmed = window.confirm(
-      `Confirmación del sistema:\n\nSe cambiarán ${assignmentIds.length} asignaciones al docente "${teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : teacherId}".\n\n¿Desea continuar?`
+      `ConfirmaciÃ³n del sistema:\n\nSe cambiarÃ¡n ${assignmentIds.length} asignaciones al docente "${teacher ? `${teacher.firstName} ${teacher.lastName}`.trim() : teacherId}".\n\nÂ¿Desea continuar?`
     );
     if (!confirmed) return;
 
@@ -466,6 +468,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
         method: 'POST',
         body: JSON.stringify({
           periodId: reportFilters.periodId,
+          sedeId: reportFilters.sedeId,
           gradeId: reportFilters.gradeId,
           teacherId: reportFilters.teacherId,
           mode: reportFilters.mode,
@@ -486,21 +489,23 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
   const moduleStats = getModuleStats(activeModule, data);
   const contextChips = useMemo(() => {
     const chips = [
-      { label: 'Módulo', value: MODULE_TITLES[activeModule] || 'Módulo institucional' },
+      { label: 'MÃ³dulo', value: MODULE_TITLES[activeModule] || 'MÃ³dulo institucional' },
       {
-        label: 'Pestaña',
-        value: panelTab === 'import' ? 'Carga masiva' : activeModule === 'Reports' ? 'Reportes' : activeModule === 'Activity' ? 'Actividad' : 'Gestión'
+        label: 'PestaÃ±a',
+        value: panelTab === 'import' ? 'Carga masiva' : activeModule === 'Reports' ? 'Reportes' : activeModule === 'Activity' ? 'Actividad' : 'GestiÃ³n'
       }
     ];
     if (activeModule === 'Reports') {
       const selectedPeriod = data.periods.find((item) => item.id === reportFilters.periodId)?.name || 'Todos';
+      const selectedSede = data.sedes.find((item) => item.id === reportFilters.sedeId)?.name || 'Todas';
       const selectedGrade = data.grades.find((item) => item.id === reportFilters.gradeId)?.name || 'Todos';
       const selectedTeacher =
         reportFilters.teacherId
           ? `${data.teachers.find((item) => item.id === reportFilters.teacherId)?.firstName || ''} ${data.teachers.find((item) => item.id === reportFilters.teacherId)?.lastName || ''}`.trim()
           : 'Todos';
       chips.push(
-        { label: 'Período', value: selectedPeriod },
+        { label: 'PerÃ­odo', value: selectedPeriod },
+        { label: 'Sede', value: selectedSede },
         { label: 'Grado', value: selectedGrade },
         { label: 'Docente', value: selectedTeacher || 'Todos' }
       );
@@ -508,7 +513,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
       chips.push({ label: 'Inactivos', value: showInactive ? 'Visibles' : 'Ocultos' });
     }
     return chips;
-  }, [activeModule, data.grades, data.periods, data.teachers, panelTab, reportFilters, showInactive]);
+  }, [activeModule, data.grades, data.periods, data.sedes, data.teachers, panelTab, reportFilters, showInactive]);
   const sharedProps = { data, formState, setFormState, editingId, setEditingId, showInactive };
   const moduleContent = {
     Institutions: <InstitutionsModule {...sharedProps} onSave={() => saveEntity('Institutions')} />,
@@ -560,8 +565,8 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
       <Card className="glass-card page-context-bar p-3 mb-4">
         <div className="d-flex justify-content-between align-items-center">
           <div>
-            <p className="section-title mb-1">Administración</p>
-            <h2 className="h4 mb-0">{MODULE_TITLES[activeModule] || 'Módulo institucional'}</h2>
+            <p className="section-title mb-1">AdministraciÃ³n</p>
+            <h2 className="h4 mb-0">{MODULE_TITLES[activeModule] || 'MÃ³dulo institucional'}</h2>
             <div className="context-chip-row">
               {contextChips.map((chip) => (
                 <span key={chip.label} className="context-chip">
@@ -602,7 +607,7 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
       ) : null}
 
       <Tabs activeKey={panelTab} onSelect={(key) => setPanelTab(key || 'manual')}>
-        <Tab eventKey="manual" title={activeModule === 'Reports' ? 'Reportes' : activeModule === 'Activity' ? 'Actividad en tiempo real' : 'Gestión del módulo'}>
+        <Tab eventKey="manual" title={activeModule === 'Reports' ? 'Reportes' : activeModule === 'Activity' ? 'Actividad en tiempo real' : 'GestiÃ³n del mÃ³dulo'}>
           <div className="pt-3">{moduleContent}</div>
         </Tab>
         {activeModule !== 'Reports' && activeModule !== 'Activity' ? (
@@ -625,3 +630,5 @@ export function AdminPanelV2({ data, onRefresh, activeModule = 'Teachers', onBac
     </div>
   );
 }
+
+

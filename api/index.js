@@ -223,6 +223,7 @@ export default async function handler(req, res) {
         200,
         await getAdminSummaryService(session, {
           periodId: searchParams.get('periodId') || '',
+          sedeId: searchParams.get('sedeId') || '',
           gradeId: searchParams.get('gradeId') || '',
           teacherId: searchParams.get('teacherId') || ''
         })

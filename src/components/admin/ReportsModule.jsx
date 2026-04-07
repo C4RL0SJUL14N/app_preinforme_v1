@@ -8,7 +8,8 @@ const PDF_MODE_OPTIONS = [
   { value: 'all', label: 'Todos los preinformes en un solo PDF' },
   { value: 'grade_single_pdf', label: 'Un solo PDF por grado' },
   { value: 'grade_student_zip', label: 'Un PDF por estudiante en ZIP' },
-  { value: 'individual', label: 'Un preinforme individual' }
+  { value: 'individual', label: 'Un preinforme individual' },
+  { value: 'reported_teachers_summary', label: 'Docentes que reportaron por sede y grado' }
 ];
 
 function formatIndexedLabel(index, label) {
@@ -63,9 +64,7 @@ function StudentStatusTable({ title, subtitle, rows, countLabel }) {
       </Table>
       {rows.length > REPORT_PAGE_SIZE ? (
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-          <div className="text-muted small">
-            Página {page} de {totalPages}
-          </div>
+          <div className="text-muted small">Página {page} de {totalPages}</div>
           <div className="d-flex gap-2">
             <button type="button" className="btn btn-outline-secondary btn-sm" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
               Anterior
@@ -125,9 +124,7 @@ function TeachersWithoutReportsTable({ rows }) {
       </Table>
       {rows.length > REPORT_PAGE_SIZE ? (
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-          <div className="text-muted small">
-            Página {page} de {totalPages}
-          </div>
+          <div className="text-muted small">Página {page} de {totalPages}</div>
           <div className="d-flex gap-2">
             <button type="button" className="btn btn-outline-secondary btn-sm" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
               Anterior
@@ -143,9 +140,13 @@ function TeachersWithoutReportsTable({ rows }) {
 }
 
 export function ReportsModule({ data, reportFilters, setReportFilters, reportSummary, loadSummary, exportCsv, downloadPdf, isAdmin }) {
+  const filteredGrades = reportFilters.sedeId ? data.grades.filter((grade) => grade.sedeId === reportFilters.sedeId) : data.grades;
+  const filteredTeachers = reportFilters.sedeId ? data.teachers.filter((teacher) => teacher.sedeId === reportFilters.sedeId) : data.teachers;
   const filteredStudents = reportFilters.gradeId
     ? data.students.filter((student) => student.gradeId === reportFilters.gradeId)
-    : data.students;
+    : reportFilters.sedeId
+      ? data.students.filter((student) => filteredGrades.some((grade) => grade.id === student.gradeId))
+      : data.students;
   const canGeneratePdf =
     reportFilters.mode === 'individual'
       ? Boolean(reportFilters.studentId)
@@ -160,11 +161,34 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
           <Row className="g-3">
             <Col lg={3}>
               <SectionCard title="Período">
-                <Form.Select value={reportFilters.periodId} onChange={(e) => setReportFilters((c) => ({ ...c, periodId: e.target.value }))}>
+                <Form.Select value={reportFilters.periodId} onChange={(e) => setReportFilters((current) => ({ ...current, periodId: e.target.value }))}>
                   <option value="">Todos</option>
                   {data.periods.map((period) => (
                     <option key={period.id} value={period.id}>
                       {period.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </SectionCard>
+            </Col>
+            <Col lg={3}>
+              <SectionCard title="Sede">
+                <Form.Select
+                  value={reportFilters.sedeId}
+                  onChange={(e) =>
+                    setReportFilters((current) => ({
+                      ...current,
+                      sedeId: e.target.value,
+                      gradeId: '',
+                      teacherId: '',
+                      studentId: ''
+                    }))
+                  }
+                >
+                  <option value="">Todas</option>
+                  {data.sedes.map((sede) => (
+                    <option key={sede.id} value={sede.id}>
+                      {sede.name}
                     </option>
                   ))}
                 </Form.Select>
@@ -183,7 +207,7 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
                   }
                 >
                   <option value="">Todos</option>
-                  {data.grades.map((grade) => (
+                  {filteredGrades.map((grade) => (
                     <option key={grade.id} value={grade.id}>
                       {grade.name}
                     </option>
@@ -193,9 +217,9 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
             </Col>
             <Col lg={3}>
               <SectionCard title="Docente">
-                <Form.Select value={reportFilters.teacherId} onChange={(e) => setReportFilters((c) => ({ ...c, teacherId: e.target.value }))}>
+                <Form.Select value={reportFilters.teacherId} onChange={(e) => setReportFilters((current) => ({ ...current, teacherId: e.target.value }))}>
                   <option value="">Todos</option>
-                  {data.teachers.map((teacher) => (
+                  {filteredTeachers.map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
                       {teacher.firstName} {teacher.lastName}
                     </option>
@@ -203,7 +227,7 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
                 </Form.Select>
               </SectionCard>
             </Col>
-            <Col lg={3}>
+            <Col lg={12}>
               <SectionCard title="Acciones" subtitle="Consulta, imprime o exporta.">
                 <div className="d-grid gap-2">
                   <Button onClick={loadSummary}>Cargar resumen</Button>
@@ -219,6 +243,7 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
           </Row>
         </div>
       </div>
+
       <Row className="g-3 mb-3">
         <Col lg={4}>
           <SectionCard title="Tipo de PDF" subtitle="Selecciona cómo quieres generar los preinformes.">
@@ -263,6 +288,9 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
               {reportFilters.mode === 'grade_single_pdf' ? 'Debes seleccionar un grado para generar un solo PDF consolidado.' : null}
               {reportFilters.mode === 'grade_student_zip' ? 'Debes seleccionar un grado para descargar un ZIP con un PDF por estudiante.' : null}
               {reportFilters.mode === 'individual' ? 'Debes seleccionar un estudiante para generar un solo preinforme.' : null}
+              {reportFilters.mode === 'reported_teachers_summary'
+                ? 'Genera un PDF con los docentes que sí reportaron, agrupados por sede y por grado según los filtros aplicados.'
+                : null}
             </div>
           </SectionCard>
         </Col>
@@ -271,7 +299,17 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
       {reportSummary ? (
         <>
           <Row className="g-3 mb-3">
-            <Col lg={4}>
+            <Col lg={3}>
+              <SectionCard title="Por sede">
+                {reportSummary.bySede.slice(0, 8).map((item) => (
+                  <div key={item.sedeId} className="d-flex justify-content-between mb-2">
+                    <span>{item.sedeName}</span>
+                    <strong>{item.total}</strong>
+                  </div>
+                ))}
+              </SectionCard>
+            </Col>
+            <Col lg={3}>
               <SectionCard title="Por grado">
                 {reportSummary.byGrade.slice(0, 8).map((item) => (
                   <div key={item.gradeId} className="d-flex justify-content-between mb-2">
@@ -281,7 +319,7 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
                 ))}
               </SectionCard>
             </Col>
-            <Col lg={4}>
+            <Col lg={3}>
               <SectionCard title="Por asignatura">
                 {reportSummary.bySubject.slice(0, 8).map((item) => (
                   <div key={item.subjectId} className="d-flex justify-content-between mb-2">
@@ -291,7 +329,7 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
                 ))}
               </SectionCard>
             </Col>
-            <Col lg={4}>
+            <Col lg={3}>
               <SectionCard title="Por docente">
                 {reportSummary.byTeacher.slice(0, 8).map((item) => (
                   <div key={item.teacherId} className="d-flex justify-content-between mb-2">
@@ -323,7 +361,6 @@ export function ReportsModule({ data, reportFilters, setReportFilters, reportSum
           </Row>
 
           {isAdmin ? <TeachersWithoutReportsTable rows={reportSummary.teachersWithoutReports} /> : null}
-
         </>
       ) : (
         <SectionCard title="Resumen institucional" subtitle="Aplica filtros y consulta consolidado, estudiantes reportados y pendientes.">
