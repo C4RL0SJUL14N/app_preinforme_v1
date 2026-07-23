@@ -165,9 +165,15 @@ export function SubjectObservationsModule({ data, onRefresh, title, onBack, obse
           })
         });
       }
+      setObservations((current) => {
+        const next = { ...current };
+        ids.forEach((studentId) => {
+          next[studentId] = value;
+        });
+        return next;
+      });
+      setSelectedStudentId('');
       setMessage(actionLabel);
-      await onRefresh();
-      await loadStudents(filters);
     } catch (saveError) {
       setError(saveError.message);
     } finally {
