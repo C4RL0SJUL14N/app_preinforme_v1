@@ -16,7 +16,7 @@ export const MODULE_TITLES = {
 export const EMPTY_FORMS = {
   Institutions: { name: '' },
   Sedes: { name: '', active: 'TRUE' },
-  Teachers: { id: '', firstName: '', lastName: '', password: '', isAdmin: 'FALSE', active: 'TRUE' },
+  Teachers: { id: '', firstName: '', lastName: '', email: '', password: '', isAdmin: 'FALSE', active: 'TRUE' },
   Subjects: { name: '', shortName: '', active: 'TRUE' },
   Grades: { name: '', sedeId: '', educationModel: 'EDUCACION_TRADICIONAL', directorTeacherId: '', active: 'TRUE' },
   Students: { firstName: '', lastName: '', gradeId: '', active: 'TRUE' },
@@ -77,11 +77,12 @@ export const MODULE_META = {
 
 export const IMPORT_SCHEMAS = {
   Teachers: {
-    fields: ['id', 'firstName', 'lastName', 'password', 'isAdmin', 'active'],
+    fields: ['id', 'firstName', 'lastName', 'email', 'password', 'isAdmin', 'active'],
     example: {
       id: 'docente1',
       firstName: 'Ana',
       lastName: 'Pérez',
+      email: 'ana.perez@ejemplo.com',
       password: 'Clave123',
       isAdmin: 'FALSE',
       active: 'TRUE'

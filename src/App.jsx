@@ -184,8 +184,11 @@ function getTeacherModuleTitle(moduleKey) {
 }
 
 export default function App() {
+  const [resetToken, setResetToken] = useState(
+    () => new URLSearchParams(window.location.search).get('resetToken') || ''
+  );
   const [state, setState] = useState({
-    loading: Boolean(getToken()),
+    loading: Boolean(getToken()) && !resetToken,
     data: null,
     error: ''
   });
@@ -205,8 +208,13 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (resetToken) {
+      setToken('');
+      setState({ loading: false, data: null, error: '' });
+      return;
+    }
     if (getToken()) loadBootstrap();
-  }, []);
+  }, [resetToken]);
 
   async function handleLogin(credentials) {
     const result = await apiFetch('/api/login', {
@@ -215,6 +223,23 @@ export default function App() {
     });
     setToken(result.token);
     await loadBootstrap();
+  }
+
+  async function handleForgotPassword(login) {
+    return apiFetch('/api/password/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ login })
+    });
+  }
+
+  async function handleResetPassword(payload) {
+    const result = await apiFetch('/api/password/reset', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    window.history.replaceState({}, '', window.location.pathname);
+    setResetToken('');
+    return result;
   }
 
   function handleLogout() {
@@ -314,7 +339,13 @@ export default function App() {
   if (!state.data) {
     return (
       <div className="app-shell">
-        <LoginForm onLogin={handleLogin} error={state.error} />
+        <LoginForm
+          onLogin={handleLogin}
+          onForgotPassword={handleForgotPassword}
+          onResetPassword={handleResetPassword}
+          resetToken={resetToken}
+          error={state.error}
+        />
       </div>
     );
   }

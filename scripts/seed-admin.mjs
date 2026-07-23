@@ -14,6 +14,7 @@ async function main() {
   const id = normalizeCell(getArg('id', 'admin'));
   const firstName = normalizeCell(getArg('firstName', 'Administrador'));
   const lastName = normalizeCell(getArg('lastName', 'Institucion'));
+  const email = normalizeCell(getArg('email'));
   const password = normalizeCell(getArg('password', 'admin123'));
 
   if (!id || !password) {
@@ -28,6 +29,7 @@ async function main() {
       id,
       firstName,
       lastName,
+      email: email || existing.email,
       passwordHash: hashPassword(password, config.passwordSalt),
       isAdmin: 'TRUE',
       active: 'TRUE'

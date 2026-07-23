@@ -20,6 +20,8 @@ import {
   getTeacherStudentsForAssignment,
   importConfigWorkbookService,
   loginService,
+  requestPasswordResetService,
+  resetPasswordService,
   pingSessionService,
   reassignAssignmentsTeacherService,
   saveTeacherSubjectGroupService,
@@ -63,6 +65,16 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && pathname === '/api/login') {
       const body = await readJsonBody(req);
       return jsonResponse(res, 200, await loginService(body.login, body.password));
+    }
+
+    if (req.method === 'POST' && pathname === '/api/password/forgot') {
+      const body = await readJsonBody(req);
+      return jsonResponse(res, 200, await requestPasswordResetService(body.login));
+    }
+
+    if (req.method === 'POST' && pathname === '/api/password/reset') {
+      const body = await readJsonBody(req);
+      return jsonResponse(res, 200, await resetPasswordService(body.token, body.password));
     }
 
     if (req.method === 'GET' && pathname === '/api/bootstrap') {

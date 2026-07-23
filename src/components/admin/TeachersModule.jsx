@@ -6,6 +6,7 @@ const fields = [
   { name: 'sedeId', label: 'Sede', type: 'select', optionsKey: 'sedes' },
   { name: 'firstName', label: 'Nombres' },
   { name: 'lastName', label: 'Apellidos' },
+  { name: 'email', label: 'Correo electrónico', type: 'email', placeholder: 'docente@ejemplo.com' },
   { name: 'password', label: 'Clave', type: 'password', placeholder: 'Solo diligenciar para crear o cambiar' },
   { name: 'isAdmin', label: 'Administrador', type: 'boolean' },
   { name: 'active', label: 'Activo', type: 'boolean' }
@@ -16,6 +17,7 @@ const columns = [
   { key: 'sedeId', label: 'Sede' },
   { key: 'firstName', label: 'Nombres' },
   { key: 'lastName', label: 'Apellidos' },
+  { key: 'email', label: 'Correo' },
   { key: 'isAdmin', label: 'Administrador' },
   { key: 'active', label: 'Activo' }
 ];

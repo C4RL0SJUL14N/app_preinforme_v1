@@ -1,3 +1,3 @@
-id,firstName,lastName,password,isAdmin,active
-admin,Admin,Institucional,admin123,TRUE,TRUE
-docente1,Ana,Perez,clave123,FALSE,TRUE
+id,firstName,lastName,email,password,isAdmin,active
+admin,Admin,Institucional,admin@ejemplo.com,admin123,TRUE,TRUE
+docente1,Ana,Perez,ana.perez@ejemplo.com,clave123,FALSE,TRUE

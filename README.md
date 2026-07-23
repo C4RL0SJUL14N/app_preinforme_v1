@@ -34,9 +34,22 @@ SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_ANON_KEY=tu_publishable_o_anon_key
 SUPABASE_SERVICE_ROLE_KEY=
 APP_PASSWORD_SALT=cambia-este-valor
+APP_BASE_URL=http://127.0.0.1:5173
+RESEND_API_KEY=re_xxxxxxxxx
+PASSWORD_RESET_EMAIL_FROM=Preinformes <no-reply@tu-dominio.com>
+PASSWORD_RESET_TTL_MINUTES=30
+PASSWORD_RESET_COOLDOWN_SECONDS=60
 CACHE_TTL_MS=60000
 DEFAULT_INSTITUTION_ID=_0001
 DEFAULT_SEDE_ID=_0001
+```
+
+La recuperación de contraseñas utiliza Resend para enviar los enlaces. En producción, `APP_BASE_URL` debe ser la URL pública de Vercel y `PASSWORD_RESET_EMAIL_FROM` debe usar un remitente verificado en Resend. `SUPABASE_SERVICE_ROLE_KEY` es obligatoria para este flujo y solo debe configurarse en el servidor; nunca debe exponerse en variables `VITE_*`.
+
+Antes de desplegar esta funcionalidad, ejecuta en el SQL Editor de Supabase:
+
+```text
+supabase/migrations/20260722_add_teacher_email_and_password_resets.sql
 ```
 
 ## Instalacion local
@@ -60,7 +73,7 @@ npm run dev
 Tambien puedes crear el admin con valores personalizados:
 
 ```bash
-npm run seed:admin -- --id=admin --firstName=Admin --lastName=Institucion --password=admin123
+npm run seed:admin -- --id=admin --firstName=Admin --lastName=Institucion --email=admin@ejemplo.com --password=admin123
 ```
 
 ## Despliegue en Vercel
@@ -112,7 +125,7 @@ Puedes usar:
 
 Columnas esperadas por entidad:
 
-- `Teachers`: `id, firstName, lastName, password, isAdmin, active`
+- `Teachers`: `id, firstName, lastName, email, password, isAdmin, active`
 - `Subjects`: `id, name, shortName, active`
 - `Grades`: `id, name, educationModel, directorTeacherId, active`
 - `GradeSubjects`: `id, gradeId, subjectId, teacherId, active`
@@ -122,6 +135,8 @@ Columnas esperadas por entidad:
 ## Endpoints principales
 
 - `POST /api/login`
+- `POST /api/password/forgot`
+- `POST /api/password/reset`
 - `GET /api/bootstrap`
 - `GET /api/teacher/students`
 - `GET /api/teacher/pre-reports`
@@ -136,5 +151,6 @@ Columnas esperadas por entidad:
 ## Observaciones de implementacion
 
 - Las claves de docentes no se almacenan en claro en la base desde la API manual; se convierten a hash SHA-256 con `APP_PASSWORD_SALT`.
+- Los tokens de recuperación se almacenan como hash, vencen por defecto en 30 minutos y solo pueden utilizarse una vez.
 - El frontend guarda un token simple en `localStorage`; para produccion conviene endurecer esto con expiracion y firma.
 - La interfaz administrativa es funcional y deliberadamente compacta; puede evolucionarse a formularios especificos por entidad.

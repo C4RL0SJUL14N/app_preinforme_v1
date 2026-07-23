@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Card, Col, Form, Row, Table } from 'react-bootstrap';
 import { MODULE_META, SaveDeleteActions } from './shared.jsx';
+import { PasswordField } from '../PasswordField.jsx';
 
 const PAGE_SIZE = 15;
 
@@ -142,6 +143,14 @@ export function EntityModule({
                     </option>
                   ))}
                 </Form.Select>
+              ) : field.type === 'password' ? (
+                <PasswordField
+                  data-admin-focus={`${moduleKey}-${field.name}`}
+                  value={formState[field.name] || ''}
+                  placeholder={field.placeholder || ''}
+                  autoComplete="new-password"
+                  onChange={(e) => setFormState((c) => ({ ...c, [field.name]: e.target.value }))}
+                />
               ) : (
                 <Form.Control
                   data-admin-focus={`${moduleKey}-${field.name}`}
