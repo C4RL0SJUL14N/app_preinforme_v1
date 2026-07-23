@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Form, Modal, Nav, Row, Table } from 'react-bootstrap';
 import { apiFetch } from '../apiClient.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
@@ -71,7 +71,6 @@ export function SubjectObservationsModule({ data, onRefresh, title, onBack, obse
   );
   const ready = Boolean(filters.periodId && filters.gradeId && (isDirector || filters.subjectId));
   const allChecked = Boolean(students.length && checkedIds.length === students.length);
-  const selectedStudent = students.find((student) => student.studentId === selectedStudentId) || null;
 
   useEffect(() => {
     if (isDirector && directedGrade?.id && filters.gradeId !== directedGrade.id) {
@@ -114,7 +113,7 @@ export function SubjectObservationsModule({ data, onRefresh, title, onBack, obse
         setSelectedStudentId((current) =>
           current && nextStudents.some((student) => student.studentId === current)
             ? current
-            : nextStudents[0]?.studentId || ''
+            : ''
         );
         setCheckedIds([]);
       } catch (loadError) {
@@ -337,73 +336,91 @@ export function SubjectObservationsModule({ data, onRefresh, title, onBack, obse
                   <tbody>
                     {filteredStudents.map((student, index) => {
                       const preview = stripHtml(observations[student.studentId]);
+                      const isOpen = student.studentId === selectedStudentId;
                       return (
-                        <tr
-                          key={student.studentId}
-                          className={student.studentId === selectedStudentId ? 'table-active' : ''}
-                          onClick={() => setSelectedStudentId(student.studentId)}
-                        >
-                          <td onClick={(event) => event.stopPropagation()}>
-                            <Form.Check
-                              aria-label={`Seleccionar ${student.firstName} ${student.lastName}`}
-                              checked={checkedIds.includes(student.studentId)}
-                              onChange={() =>
-                                setCheckedIds((current) =>
-                                  current.includes(student.studentId)
-                                    ? current.filter((id) => id !== student.studentId)
-                                    : [...current, student.studentId]
-                                )
-                              }
-                            />
-                          </td>
-                          <td>{index + 1}</td>
-                          <td>{student.lastName}</td>
-                          <td>{student.firstName}</td>
-                          <td>
-                            {preview ? <span>{preview.slice(0, 90)}{preview.length > 90 ? '…' : ''}</span> : <Badge bg="secondary">Sin observación</Badge>}
-                          </td>
-                          <td><Button size="sm" variant="outline-dark">Abrir</Button></td>
-                        </tr>
+                        <Fragment key={student.studentId}>
+                          <tr
+                            className={isOpen ? 'table-active' : ''}
+                            onClick={() => setSelectedStudentId(isOpen ? '' : student.studentId)}
+                            role="button"
+                            aria-expanded={isOpen}
+                          >
+                            <td onClick={(event) => event.stopPropagation()}>
+                              <Form.Check
+                                aria-label={`Seleccionar ${student.firstName} ${student.lastName}`}
+                                checked={checkedIds.includes(student.studentId)}
+                                onChange={() =>
+                                  setCheckedIds((current) =>
+                                    current.includes(student.studentId)
+                                      ? current.filter((id) => id !== student.studentId)
+                                      : [...current, student.studentId]
+                                  )
+                                }
+                              />
+                            </td>
+                            <td>{index + 1}</td>
+                            <td>{student.lastName}</td>
+                            <td>{student.firstName}</td>
+                            <td>
+                              {preview ? <span>{preview.slice(0, 90)}{preview.length > 90 ? '…' : ''}</span> : <Badge bg="secondary">Sin observación</Badge>}
+                            </td>
+                            <td>
+                              <Button
+                                size="sm"
+                                variant={isOpen ? 'dark' : 'outline-dark'}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setSelectedStudentId(isOpen ? '' : student.studentId);
+                                }}
+                              >
+                                {isOpen ? 'Cerrar' : 'Abrir'}
+                              </Button>
+                            </td>
+                          </tr>
+                          {isOpen ? (
+                            <tr className="observation-editor-row">
+                              <td colSpan={6} className="p-0">
+                                <Card className="glass-card observation-editor-panel m-2">
+                                  <Nav variant="tabs" className="px-3 pt-3">
+                                    <Nav.Item>
+                                      <Nav.Link active>
+                                        Observación · {student.lastName} {student.firstName}
+                                      </Nav.Link>
+                                    </Nav.Item>
+                                  </Nav>
+                                  <Card.Body>
+                                    <RichTextEditor
+                                      label={isDirector ? 'Observación del director de grupo' : 'Observación de la asignatura'}
+                                      rows={8}
+                                      value={observations[student.studentId] || ''}
+                                      onChange={(value) =>
+                                        setObservations((current) => ({ ...current, [student.studentId]: value }))
+                                      }
+                                      helperText="Puedes aplicar negrita, cursiva, subrayado y colores al texto."
+                                    />
+                                    <div className="d-flex flex-wrap justify-content-end gap-2">
+                                      <Button
+                                        variant="outline-danger"
+                                        disabled={saving || !stripHtml(observations[student.studentId])}
+                                        onClick={() => deleteFor([student.studentId], 'la observación de este estudiante')}
+                                      >
+                                        Borrar
+                                      </Button>
+                                      <Button disabled={saving} onClick={saveIndividual}>
+                                        {saving ? 'Guardando…' : 'Guardar'}
+                                      </Button>
+                                    </div>
+                                  </Card.Body>
+                                </Card>
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
                       );
                     })}
                   </tbody>
                 </Table>
               </div>
-
-              {selectedStudent ? (
-                <Card className="glass-card observation-editor-panel mt-3">
-                  <Nav variant="tabs" className="px-3 pt-3">
-                    <Nav.Item>
-                      <Nav.Link active>
-                        Observación · {selectedStudent.lastName} {selectedStudent.firstName}
-                      </Nav.Link>
-                    </Nav.Item>
-                  </Nav>
-                  <Card.Body>
-                    <RichTextEditor
-                      label={isDirector ? 'Observación del director de grupo' : 'Observación de la asignatura'}
-                      rows={8}
-                      value={observations[selectedStudent.studentId] || ''}
-                      onChange={(value) =>
-                        setObservations((current) => ({ ...current, [selectedStudent.studentId]: value }))
-                      }
-                      helperText="Puedes aplicar negrita, cursiva, subrayado y colores al texto."
-                    />
-                    <div className="d-flex flex-wrap justify-content-end gap-2">
-                      <Button
-                        variant="outline-danger"
-                        disabled={saving || !stripHtml(observations[selectedStudent.studentId])}
-                        onClick={() => deleteFor([selectedStudent.studentId], 'la observación de este estudiante')}
-                      >
-                        Borrar
-                      </Button>
-                      <Button disabled={saving} onClick={saveIndividual}>
-                        {saving ? 'Guardando…' : 'Guardar'}
-                      </Button>
-                    </div>
-                  </Card.Body>
-                </Card>
-              ) : null}
             </>
           ) : (
             <Alert variant="warning">No hay estudiantes activos para mostrar.</Alert>
