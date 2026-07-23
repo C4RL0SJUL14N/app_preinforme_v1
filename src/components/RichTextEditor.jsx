@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Button, ButtonGroup, Form } from 'react-bootstrap';
 
-const ALLOWED_TAGS = new Set(['P', 'DIV', 'BR', 'UL', 'OL', 'LI', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN']);
+const ALLOWED_TAGS = new Set(['P', 'DIV', 'BR', 'UL', 'OL', 'LI', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'FONT']);
 const BASIC_COLORS = [
   { label: 'Negro', value: '#000000' },
   { label: 'Rojo', value: '#c62828' },
@@ -51,9 +51,9 @@ function sanitizeNode(node, document) {
     return fragment;
   }
 
-  const clean = document.createElement(tagName.toLowerCase());
-  if (tagName === 'SPAN') {
-    const color = node.style?.color || '';
+  const clean = document.createElement(tagName === 'FONT' ? 'span' : tagName.toLowerCase());
+  if (tagName === 'SPAN' || tagName === 'FONT') {
+    const color = node.style?.color || node.getAttribute?.('color') || '';
     if (color) clean.style.color = color;
   }
 
