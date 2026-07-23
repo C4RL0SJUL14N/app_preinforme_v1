@@ -4,6 +4,11 @@ import { apiFetch } from '../apiClient.js';
 
 const AUTOSAVE_SECONDS = 5 * 60;
 const AUTOSAVE_STORAGE_KEY = 'preinformes:marks:autosave';
+const MINIMUM_SAVE_FEEDBACK_MS = 1000;
+
+function wait(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
 
 function normalizeText(value) {
   return String(value || '')
@@ -56,6 +61,8 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
   const [students, setStudents] = useState([]);
   const [rows, setRows] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
+  const [additionalSubjectIds, setAdditionalSubjectIds] = useState([]);
+  const [copyTargetSubjectId, setCopyTargetSubjectId] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -70,6 +77,7 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
   const filtersRef = useRef(filters);
   const dirtyRef = useRef(dirty);
   const savingRef = useRef(false);
+  const additionalSubjectIdsRef = useRef(additionalSubjectIds);
 
   const subjectOptions = useMemo(() => findSubjectOptions(data, filters.gradeId), [data, filters.gradeId]);
   const questionMeta = useMemo(
@@ -88,6 +96,10 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
     [data.questions]
   );
   const ready = Boolean(filters.periodId && filters.gradeId && filters.subjectId);
+  const otherSubjectOptions = useMemo(
+    () => subjectOptions.filter((subject) => subject.subjectId !== filters.subjectId),
+    [filters.subjectId, subjectOptions]
+  );
 
   useEffect(() => {
     rowsRef.current = rows;
@@ -98,6 +110,9 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
   useEffect(() => {
     dirtyRef.current = dirty;
   }, [dirty]);
+  useEffect(() => {
+    additionalSubjectIdsRef.current = additionalSubjectIds;
+  }, [additionalSubjectIds]);
 
   const loadWorkspace = useCallback(async (nextFilters) => {
     if (!nextFilters.periodId || !nextFilters.gradeId || !nextFilters.subjectId) {
@@ -151,32 +166,78 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
       savingRef.current = true;
       setSaving(true);
       setError('');
+      setMessage('');
+      const startedAt = Date.now();
       try {
-        const result = await apiFetch('/api/teacher/pre-report-marks', {
-          method: 'PUT',
-          body: JSON.stringify({
-            ...currentFilters,
-            rows: Object.values(rowsRef.current)
-          })
-        });
+        const targetSubjectIds = [
+          currentFilters.subjectId,
+          ...additionalSubjectIdsRef.current.filter((subjectId) => subjectId !== currentFilters.subjectId)
+        ];
+        const results = await Promise.all(
+          targetSubjectIds.map((subjectId) =>
+            apiFetch('/api/teacher/pre-report-marks', {
+              method: 'PUT',
+              body: JSON.stringify({
+                ...currentFilters,
+                subjectId,
+                rows: Object.values(rowsRef.current)
+              })
+            })
+          )
+        );
+        const remainingDelay = Math.max(0, MINIMUM_SAVE_FEEDBACK_MS - (Date.now() - startedAt));
+        if (remainingDelay) await wait(remainingDelay);
         setDirty(false);
         setLastSavedAt(new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }));
         setSecondsRemaining(AUTOSAVE_SECONDS);
         setMessage(
           automatic
-            ? 'Autoguardado completado.'
-            : `Cambios guardados. ${result.marked} estudiantes tienen marcas activas.`
+            ? `Autoguardado completado en ${targetSubjectIds.length} asignatura${targetSubjectIds.length === 1 ? '' : 's'}.`
+            : `Cambios guardados en ${targetSubjectIds.length} asignatura${targetSubjectIds.length === 1 ? '' : 's'}. ${results[0].marked} estudiantes tienen marcas activas.`
         );
-        await onRefresh();
       } catch (saveError) {
+        const remainingDelay = Math.max(0, MINIMUM_SAVE_FEEDBACK_MS - (Date.now() - startedAt));
+        if (remainingDelay) await wait(remainingDelay);
         setError(`No fue posible ${automatic ? 'autoguardar' : 'guardar'}: ${saveError.message}`);
       } finally {
         savingRef.current = false;
         setSaving(false);
       }
     },
-    [onRefresh]
+    []
   );
+
+  async function copyMarksToSubject() {
+    if (!copyTargetSubjectId || savingRef.current) return;
+    const targetName = subjectOptions.find((subject) => subject.subjectId === copyTargetSubjectId)?.name || 'la asignatura seleccionada';
+    if (!window.confirm(`Las marcas actuales reemplazarán las marcas existentes en ${targetName}. ¿Deseas continuar?`)) return;
+
+    savingRef.current = true;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    const startedAt = Date.now();
+    try {
+      const result = await apiFetch('/api/teacher/pre-report-marks', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...filtersRef.current,
+          subjectId: copyTargetSubjectId,
+          rows: Object.values(rowsRef.current)
+        })
+      });
+      const remainingDelay = Math.max(0, MINIMUM_SAVE_FEEDBACK_MS - (Date.now() - startedAt));
+      if (remainingDelay) await wait(remainingDelay);
+      setMessage(`Marcas copiadas a ${targetName}. ${result.marked} estudiantes quedaron con marcas activas.`);
+    } catch (copyError) {
+      const remainingDelay = Math.max(0, MINIMUM_SAVE_FEEDBACK_MS - (Date.now() - startedAt));
+      if (remainingDelay) await wait(remainingDelay);
+      setError(`No fue posible copiar las marcas: ${copyError.message}`);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
 
   useEffect(() => {
     window.localStorage.setItem(AUTOSAVE_STORAGE_KEY, String(autosaveEnabled));
@@ -195,6 +256,8 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
   }, [autosaveEnabled, ready, saveMarks, secondsRemaining, students.length]);
 
   function updateFilter(field, value) {
+    setAdditionalSubjectIds([]);
+    setCopyTargetSubjectId('');
     setFilters((current) => {
       if (field === 'periodId') return { periodId: value, gradeId: '', subjectId: '' };
       if (field === 'gradeId') return { ...current, gradeId: value, subjectId: '' };
@@ -244,32 +307,88 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
           <h2 className="h4 mb-1">{title || 'Preinformes'}</h2>
           <div className="text-muted">Crea, modifica o quita únicamente las marcas del preinforme.</div>
         </div>
-        <Button variant="outline-dark" onClick={onBack}>Volver al tablero</Button>
+        <Button variant="outline-dark" onClick={onBack} disabled={saving}>Volver al tablero</Button>
       </div>
 
       <Row>
         <Col md={4} className="mb-3">
           <Form.Label>Período</Form.Label>
-          <Form.Select value={filters.periodId} onChange={(event) => updateFilter('periodId', event.target.value)}>
+          <Form.Select value={filters.periodId} disabled={saving} onChange={(event) => updateFilter('periodId', event.target.value)}>
             <option value="">Seleccione</option>
             {data.periods.map((period) => <option key={period.id} value={period.id}>{period.name}</option>)}
           </Form.Select>
         </Col>
         <Col md={4} className="mb-3">
           <Form.Label>Grado</Form.Label>
-          <Form.Select value={filters.gradeId} onChange={(event) => updateFilter('gradeId', event.target.value)}>
+          <Form.Select value={filters.gradeId} disabled={saving} onChange={(event) => updateFilter('gradeId', event.target.value)}>
             <option value="">Seleccione</option>
             {data.grades.map((grade) => <option key={grade.id} value={grade.id}>{grade.name}</option>)}
           </Form.Select>
         </Col>
         <Col md={4} className="mb-3">
           <Form.Label>Asignatura</Form.Label>
-          <Form.Select value={filters.subjectId} onChange={(event) => updateFilter('subjectId', event.target.value)}>
+          <Form.Select value={filters.subjectId} disabled={saving} onChange={(event) => updateFilter('subjectId', event.target.value)}>
             <option value="">Seleccione</option>
             {subjectOptions.map((subject) => <option key={subject.id} value={subject.subjectId}>{subject.name}</option>)}
           </Form.Select>
         </Col>
       </Row>
+
+      {ready && otherSubjectOptions.length ? (
+        <Row className="g-3 mb-3">
+          <Col lg={7}>
+            <Card className="glass-card p-3 h-100">
+              <div className="section-title mb-2">Guardar en varias asignaturas</div>
+              <div className="text-muted small mb-3">
+                La asignatura principal siempre se guarda. Marca otras asignaturas del mismo grado para aplicarles también esta matriz.
+              </div>
+              <Row className="g-2">
+                <Col md={6}>
+                  <Form.Check type="checkbox" checked disabled label={subjectOptions.find((item) => item.subjectId === filters.subjectId)?.name || 'Asignatura principal'} />
+                </Col>
+                {otherSubjectOptions.map((subject) => (
+                  <Col md={6} key={`additional-${subject.subjectId}`}>
+                    <Form.Check
+                      type="checkbox"
+                      disabled={saving}
+                      id={`additional-subject-${subject.subjectId}`}
+                      checked={additionalSubjectIds.includes(subject.subjectId)}
+                      label={subject.name}
+                      onChange={() =>
+                        setAdditionalSubjectIds((current) =>
+                          current.includes(subject.subjectId)
+                            ? current.filter((subjectId) => subjectId !== subject.subjectId)
+                            : [...current, subject.subjectId]
+                        )
+                      }
+                    />
+                  </Col>
+                ))}
+              </Row>
+            </Card>
+          </Col>
+          <Col lg={5}>
+            <Card className="glass-card p-3 h-100">
+              <div className="section-title mb-2">Copiar marcas a otra asignatura</div>
+              <div className="text-muted small mb-3">Reemplaza las marcas de la asignatura destino con la matriz que estás viendo.</div>
+              <Form.Select
+                className="mb-2"
+                disabled={saving}
+                value={copyTargetSubjectId}
+                onChange={(event) => setCopyTargetSubjectId(event.target.value)}
+              >
+                <option value="">Seleccione la asignatura destino</option>
+                {otherSubjectOptions.map((subject) => (
+                  <option key={`copy-${subject.subjectId}`} value={subject.subjectId}>{subject.name}</option>
+                ))}
+              </Form.Select>
+              <Button variant="outline-primary" disabled={!copyTargetSubjectId || saving} onClick={copyMarksToSubject}>
+                Copiar marcas
+              </Button>
+            </Card>
+          </Col>
+        </Row>
+      ) : null}
 
       <div className="sticky-action-bar">
         <div className="sticky-action-card d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
@@ -282,6 +401,7 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
               id="pre-report-autosave"
               label={autosaveEnabled ? `Autoguardado activo · ${formatCountdown(secondsRemaining)}` : 'Autoguardado desactivado'}
               checked={autosaveEnabled}
+              disabled={saving}
               onChange={(event) => setAutosaveEnabled(event.target.checked)}
             />
           </div>
@@ -289,7 +409,7 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
             <Button variant="outline-secondary" disabled={!students.length || saving} onClick={clearSelectedMarks}>
               Quitar marcas {selectedIds.length ? 'seleccionadas' : 'de todo el grupo'}
             </Button>
-            <Button disabled={!ready || !students.length || saving || !dirty} onClick={() => saveMarks(false)}>
+            <Button disabled={!ready || !students.length || saving || (!dirty && !additionalSubjectIds.length)} onClick={() => saveMarks(false)}>
               {saving ? 'Guardando…' : 'Guardar cambios'}
             </Button>
           </div>
@@ -326,6 +446,7 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
                     <Form.Check
                       aria-label="Seleccionar todo el grupo"
                       checked={allSelected}
+                      disabled={saving}
                       onChange={() => setSelectedIds(allSelected ? [] : students.map((student) => student.studentId))}
                     />
                   </th>
@@ -342,6 +463,7 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
                         <Form.Check
                           label={index + 1}
                           checked={selectedIds.includes(student.studentId)}
+                          disabled={saving}
                           onChange={() =>
                             setSelectedIds((current) =>
                               current.includes(student.studentId)
@@ -360,6 +482,7 @@ export function PreReportMarksModule({ data, onRefresh, title, onBack }) {
                           <td key={`${student.studentId}-${item.key}`} className="bulk-question-cell">
                             <button
                               type="button"
+                              disabled={saving}
                               className={`bulk-mark-btn ${checked ? 'is-marked' : ''}`}
                               onClick={() => toggleQuestion(student.studentId, item.section, item.question)}
                               aria-label={`${checked ? 'Quitar' : 'Agregar'} ${item.key} a ${student.firstName} ${student.lastName}`}
