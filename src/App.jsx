@@ -5,6 +5,8 @@ import { LoginForm } from './components/LoginForm.jsx';
 import { TeacherPanel } from './components/TeacherPanel.jsx';
 import { AdminPanelV2 } from './components/AdminPanelV2.jsx';
 import { UserManualModule } from './components/UserManualModule.jsx';
+import { PreReportMarksModule } from './components/PreReportMarksModule.jsx';
+import { SubjectObservationsModule } from './components/SubjectObservationsModule.jsx';
 
 const ADMIN_MODULES = [
   { key: 'Institutions', title: 'Institución', description: 'Configurar el nombre institucional.', icon: 'layers', color: 'slate' },
@@ -21,7 +23,14 @@ const ADMIN_MODULES = [
 ];
 
 const TEACHER_MODULES = [
-  { key: 'prereports', title: 'Preinformes', description: 'Registrar y editar tus preinformes.', icon: 'clipboard', color: 'orange' },
+  { key: 'prereports', title: 'Preinformes', description: 'Gestionar las marcas del grupo.', icon: 'clipboard', color: 'orange' },
+  {
+    key: 'subject-observations',
+    title: 'Observaciones por asignatura',
+    description: 'Registrar observaciones independientes para cada asignatura.',
+    icon: 'book',
+    color: 'teal'
+  },
   {
     key: 'subject-groups',
     title: 'Agrupación de asignaturas',
@@ -176,6 +185,7 @@ function AdminWorkspaceBoard({ session, teachers, selectedTeacherProfileId, setS
 }
 
 function getTeacherModuleTitle(moduleKey) {
+  if (moduleKey === 'subject-observations') return 'Observaciones por asignatura';
   if (moduleKey === 'subject-groups') return 'Agrupación de asignaturas';
   if (moduleKey === 'group-reports') return 'Reportes del grupo';
   if (moduleKey === 'director-observations') return 'Observaciones del director de grupo';
@@ -260,7 +270,7 @@ export default function App() {
 
   const visibleTeacherModules = state.data?.session.isDirector
     ? TEACHER_MODULES
-    : TEACHER_MODULES.filter((item) => ['prereports', 'subject-groups', 'manual'].includes(item.key));
+    : TEACHER_MODULES.filter((item) => ['prereports', 'subject-observations', 'subject-groups', 'manual'].includes(item.key));
 
   const adminModulesWithCounts = state.data?.adminView
     ? ADMIN_MODULES.map((module) => ({
@@ -313,7 +323,11 @@ export default function App() {
     ...module,
     count:
       module.key === 'prereports'
-        ? state.data?.teacherView?.preReports?.length || 0
+        ? state.data?.teacherView?.preReports?.filter(
+            (item) => item.status !== 'deleted' && ((item.convivencia || []).length || (item.academica || []).length)
+          ).length || 0
+        : module.key === 'subject-observations'
+          ? state.data?.teacherView?.preReports?.filter((item) => Boolean(item.observations)).length || 0
         : module.key === 'subject-groups'
           ? state.data?.teacherView?.subjectGroups?.length || 0
         : module.key === 'director-observations'
@@ -443,9 +457,18 @@ export default function App() {
                     modules={teacherModulesWithCounts}
                     onChange={setTeacherModule}
                   />
-                ) : teacherModule === 'manual' ? (
-                  <UserManualModule
-                    isDirector={state.data.session.isDirector}
+                ) : teacherModule === 'prereports' ? (
+                  <PreReportMarksModule
+                    data={state.data.teacherView}
+                    onRefresh={loadBootstrap}
+                    title={getTeacherModuleTitle(teacherModule)}
+                    onBack={() => setTeacherModule('')}
+                  />
+                ) : teacherModule === 'subject-observations' ? (
+                  <SubjectObservationsModule
+                    data={state.data.teacherView}
+                    onRefresh={loadBootstrap}
+                    title={getTeacherModuleTitle(teacherModule)}
                     onBack={() => setTeacherModule('')}
                   />
                 ) : teacherModule === 'manual' ? (
@@ -485,9 +508,18 @@ export default function App() {
                 modules={teacherModulesWithCounts}
                 onChange={setTeacherModule}
               />
-            ) : teacherModule === 'manual' ? (
-              <UserManualModule
-                isDirector={state.data.session.isDirector}
+            ) : teacherModule === 'prereports' ? (
+              <PreReportMarksModule
+                data={state.data.teacherView}
+                onRefresh={loadBootstrap}
+                title={getTeacherModuleTitle(teacherModule)}
+                onBack={() => setTeacherModule('')}
+              />
+            ) : teacherModule === 'subject-observations' ? (
+              <SubjectObservationsModule
+                data={state.data.teacherView}
+                onRefresh={loadBootstrap}
+                title={getTeacherModuleTitle(teacherModule)}
                 onBack={() => setTeacherModule('')}
               />
             ) : teacherModule === 'manual' ? (

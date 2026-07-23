@@ -18,6 +18,7 @@ import {
   getDirectorObservationPanelService,
   getEditablePreReports,
   getTeacherStudentsForAssignment,
+  getTeacherPreReportWorkspaceService,
   importConfigWorkbookService,
   loginService,
   requestPasswordResetService,
@@ -25,6 +26,8 @@ import {
   pingSessionService,
   reassignAssignmentsTeacherService,
   saveTeacherSubjectGroupService,
+  saveTeacherPreReportMarksService,
+  saveTeacherSubjectObservationsService,
   saveDirectorObservationsService,
   saveEntityService,
   switchSessionViewService,
@@ -106,6 +109,26 @@ export default async function handler(req, res) {
       const session = ensureSession(req);
       const preReports = await getEditablePreReports(session, searchParams.get('gradeId'), searchParams.get('subjectId'));
       return jsonResponse(res, 200, { preReports });
+    }
+
+    if (req.method === 'GET' && pathname === '/api/teacher/pre-report-workspace') {
+      return jsonResponse(
+        res,
+        200,
+        await getTeacherPreReportWorkspaceService(ensureSession(req), {
+          periodId: searchParams.get('periodId'),
+          gradeId: searchParams.get('gradeId'),
+          subjectId: searchParams.get('subjectId')
+        })
+      );
+    }
+
+    if (req.method === 'PUT' && pathname === '/api/teacher/pre-report-marks') {
+      return jsonResponse(res, 200, await saveTeacherPreReportMarksService(ensureSession(req), await readJsonBody(req)));
+    }
+
+    if (req.method === 'PUT' && pathname === '/api/teacher/subject-observations') {
+      return jsonResponse(res, 200, await saveTeacherSubjectObservationsService(ensureSession(req), await readJsonBody(req)));
     }
 
     if (req.method === 'GET' && pathname === '/api/teacher/director-observations') {
