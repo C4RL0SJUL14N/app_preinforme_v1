@@ -471,6 +471,14 @@ export default function App() {
                     title={getTeacherModuleTitle(teacherModule)}
                     onBack={() => setTeacherModule('')}
                   />
+                ) : teacherModule === 'director-observations' ? (
+                  <SubjectObservationsModule
+                    data={state.data.teacherView}
+                    onRefresh={loadBootstrap}
+                    title={getTeacherModuleTitle(teacherModule)}
+                    onBack={() => setTeacherModule('')}
+                    observationType="director"
+                  />
                 ) : teacherModule === 'manual' ? (
                   <UserManualModule
                     isDirector={state.data.session.isDirector}
@@ -521,6 +529,14 @@ export default function App() {
                 onRefresh={loadBootstrap}
                 title={getTeacherModuleTitle(teacherModule)}
                 onBack={() => setTeacherModule('')}
+              />
+            ) : teacherModule === 'director-observations' ? (
+              <SubjectObservationsModule
+                data={state.data.teacherView}
+                onRefresh={loadBootstrap}
+                title={getTeacherModuleTitle(teacherModule)}
+                onBack={() => setTeacherModule('')}
+                observationType="director"
               />
             ) : teacherModule === 'manual' ? (
               <UserManualModule

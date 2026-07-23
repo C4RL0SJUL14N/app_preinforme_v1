@@ -1,0 +1,2 @@
+-- Línea base ya aplicada en el proyecto remoto antes de incorporar
+-- el historial de migraciones al repositorio.
