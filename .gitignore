@@ -5,3 +5,4 @@ dist
 tmp_*
 tmp_docx_extract
 supabase/.temp
+.env.local

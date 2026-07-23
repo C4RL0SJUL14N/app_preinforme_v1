@@ -35,8 +35,9 @@ SUPABASE_ANON_KEY=tu_publishable_o_anon_key
 SUPABASE_SERVICE_ROLE_KEY=
 APP_PASSWORD_SALT=cambia-este-valor
 APP_BASE_URL=http://127.0.0.1:5173
-RESEND_API_KEY=re_xxxxxxxxx
-PASSWORD_RESET_EMAIL_FROM=Preinformes <no-reply@tu-dominio.com>
+GMAIL_SMTP_USER=tu-cuenta@gmail.com
+GMAIL_APP_PASSWORD=contraseña-de-aplicacion-de-16-caracteres
+PASSWORD_RESET_EMAIL_FROM=Preinformes <tu-cuenta@gmail.com>
 PASSWORD_RESET_TTL_MINUTES=30
 PASSWORD_RESET_COOLDOWN_SECONDS=60
 CACHE_TTL_MS=60000
@@ -44,7 +45,7 @@ DEFAULT_INSTITUTION_ID=_0001
 DEFAULT_SEDE_ID=_0001
 ```
 
-La recuperación de contraseñas utiliza Resend para enviar los enlaces. En producción, `APP_BASE_URL` debe ser la URL pública de Vercel y `PASSWORD_RESET_EMAIL_FROM` debe usar un remitente verificado en Resend. `SUPABASE_SERVICE_ROLE_KEY` es obligatoria para este flujo y solo debe configurarse en el servidor; nunca debe exponerse en variables `VITE_*`.
+La recuperación de contraseñas utiliza Gmail mediante SMTP. En producción, `APP_BASE_URL` debe ser la URL pública de Vercel. Activa la verificación en dos pasos de la cuenta Gmail y genera una contraseña de aplicación; utiliza esa clave de 16 caracteres en `GMAIL_APP_PASSWORD`, no la contraseña normal de Gmail. `SUPABASE_SERVICE_ROLE_KEY` y `GMAIL_APP_PASSWORD` solo deben configurarse en el servidor y nunca exponerse en variables `VITE_*`.
 
 Antes de desplegar esta funcionalidad, ejecuta en el SQL Editor de Supabase:
 
