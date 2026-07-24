@@ -153,5 +153,6 @@ Columnas esperadas por entidad:
 
 - Las claves de docentes no se almacenan en claro en la base desde la API manual; se convierten a hash SHA-256 con `APP_PASSWORD_SALT`.
 - Los tokens de recuperación se almacenan como hash, vencen por defecto en 30 minutos y solo pueden utilizarse una vez.
-- El frontend guarda un token simple en `localStorage`; para produccion conviene endurecer esto con expiracion y firma.
+- El frontend guarda el token en `sessionStorage`, por lo que la sesión no se restaura después de cerrar el navegador.
+- Los tokens de sesión están firmados y vencen según `SESSION_TTL_HOURS` (12 horas por defecto).
 - La interfaz administrativa es funcional y deliberadamente compacta; puede evolucionarse a formularios especificos por entidad.
