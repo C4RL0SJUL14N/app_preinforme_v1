@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Container, Form, Row } from 'react-bootstrap';
+import userManualUrl from '../../docs/manual-usuario-preinformes.pdf?url';
 import { PasswordField } from './PasswordField.jsx';
 
 export function LoginForm({ onLogin, onForgotPassword, onResetPassword, resetToken = '', error }) {
@@ -133,6 +134,18 @@ export function LoginForm({ onLogin, onForgotPassword, onResetPassword, resetTok
                   </Button>
                 </Form>
               ) : null}
+
+              <div className="text-center border-top mt-4 pt-3">
+                <Button
+                  as="a"
+                  href={userManualUrl}
+                  download="manual-usuario-preinformes.pdf"
+                  variant="outline-primary"
+                  size="sm"
+                >
+                  Descargar manual de usuario (PDF)
+                </Button>
+              </div>
             </Card.Body>
           </Card>
         </Col>
