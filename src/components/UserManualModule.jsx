@@ -214,85 +214,84 @@ export function UserManualModule({ isDirector = false, onBack }) {
   const teacherSections = [
     {
       audience: 'Docente',
-      title: 'Tablero y navegación',
-      description: 'Desde el tablero docente eliges el módulo de trabajo y puedes volver al inicio cuando lo necesites.',
+      title: 'Ingreso y recuperación de contraseña',
+      description: 'Accede con tu documento y recupera el acceso mediante el correo registrado cuando sea necesario.',
       steps: [
-        'Abre el módulo que necesitas desde las tarjetas del tablero.',
-        'Revisa la barra superior para confirmar vista, período, grado y asignatura.',
-        'Usa "Volver al tablero" para cambiar de módulo sin perder el contexto general.'
+        'Escribe tu documento y contraseña en la pantalla de ingreso.',
+        'Usa el icono del campo de contraseña para mostrar u ocultar lo escrito.',
+        'Si olvidaste la contraseña, pulsa "¿Olvidaste tu contraseña?" y escribe tu documento.',
+        'Abre el enlace recibido en tu correo de recuperación y define una contraseña nueva.'
       ],
-      tip: 'Si tu usuario también es director de grupo, verás módulos adicionales para reportes y observaciones del director.',
-      illustration: <ManualIllustration variant="dashboard" />
-    },
-    {
-      audience: 'Docente',
-      title: 'Crear un preinforme individual',
-      description: 'Permite registrar dificultades y observaciones para un estudiante específico.',
-      steps: [
-        'Selecciona período, grado y asignatura.',
-        'Carga los estudiantes y elige uno en la lista.',
-        'Marca las dificultades de convivencia o académicas que correspondan.',
-        'Escribe las observaciones y guarda el preinforme.',
-        'Si necesitas dejar la observación en blanco, usa el botón "Eliminar observación".'
-      ],
-      tip: 'El formulario conserva visibles las acciones principales para que no tengas que volver al final de la página.',
+      tip: 'Si tu usuario no tiene correo registrado, la plataforma te indicará que debes solicitar su actualización.',
       illustration: <ManualIllustration variant="individual" />
     },
     {
       audience: 'Docente',
-      title: 'Crear carga grupal',
-      description: 'Sirve para registrar varios estudiantes en una sola matriz con marcas rápidas.',
+      title: 'Tablero y navegación',
+      description: 'Desde el tablero eliges módulos independientes para marcas, observaciones y otras tareas docentes.',
+      steps: [
+        'Abre el módulo que necesitas desde las tarjetas del tablero.',
+        'Revisa el título y los filtros para confirmar que estás en la vista correcta.',
+        'Usa "Volver al tablero" para cambiar de módulo sin cerrar la sesión.'
+      ],
+      tip: 'Las marcas, las observaciones por asignatura y las observaciones del director se gestionan por separado.',
+      illustration: <ManualIllustration variant="dashboard" />
+    },
+    {
+      audience: 'Docente',
+      title: 'Registrar marcas de preinforme',
+      description: 'El formulario carga todo el grupo y permite crear, modificar o desmarcar dificultades desde una sola matriz.',
       steps: [
         'Selecciona período, grado y asignatura.',
-        'Usa "Cargar estudiantes" para abrir la matriz grupal.',
-        'Marca las casillas C y A según corresponda a cada estudiante.',
-        'Si necesitas, agrega una observación grupal y guarda la carga.'
+        'Espera la carga automática del listado de estudiantes y las marcas existentes.',
+        'Marca o desmarca los descriptores C y A de cada estudiante.',
+        'Pulsa "Guardar cambios"; durante el guardado la edición se bloqueará brevemente.',
+        'Continúa trabajando cuando aparezca la confirmación, ya que las marcas permanecerán visibles.',
+        'Activa o desactiva el autoguardado de cinco minutos según tu forma de trabajo.'
       ],
-      tip: 'La observación grupal solo se aplica a estudiantes que tengan al menos una dificultad marcada.',
+      tip: 'Desmarcar una dificultad y guardar funciona como edición o eliminación de esa marca.',
       illustration: <ManualIllustration variant="group" />
     },
     {
       audience: 'Docente',
-      title: 'Agrupación de asignaturas',
-      description:
-        'Permite crear materias agrupadas por grado cuando varias asignaturas afines deben tratarse como una sola opción al cargar preinformes.',
+      title: 'Guardar o copiar marcas en otras asignaturas',
+      description: 'Puedes reutilizar las marcas en otras asignaturas que tengas asignadas dentro del mismo grado.',
       steps: [
-        'Abre el módulo "Agrupación de asignaturas" desde el tablero docente.',
-        'Selecciona el grado donde dictas varias materias afines.',
-        'Escribe el nombre y el nombre corto de la agrupación.',
-        'Marca las asignaturas que formarán parte del grupo.',
-        'Elige la asignatura principal, que será la usada internamente para guardar la información.',
-        'Define el modo de impresión y guarda la agrupación.'
+        'En "Guardar en varias asignaturas", marca las materias que recibirán los cambios junto con la principal.',
+        'Edita la matriz y pulsa "Guardar cambios" para actualizar todas las seleccionadas.',
+        'Para copiar lo ya cargado, selecciona una materia de destino en "Copiar marcas a otra asignatura".',
+        'Confirma la copia y revisa el mensaje de finalización.'
       ],
-      tip: 'Cuando la agrupación está activa, aparecerá como una sola opción dentro del selector de asignaturas del módulo de preinformes.',
-      illustration: <ManualIllustration variant="subject-groups" />
-    },
-    {
-      audience: 'Docente',
-      title: 'Aplicar el mismo preinforme a varias asignaturas',
-      description: 'Si dictas varias asignaturas en el mismo grado, puedes guardar el mismo contenido en más de una.',
-      steps: [
-        'Elige la asignatura principal.',
-        'Marca las asignaturas adicionales del mismo grado donde quieres repetir el preinforme.',
-        'Guarda en modo individual o grupal, según corresponda.',
-        'Revisa el mensaje final para confirmar en cuáles asignaturas se creó.'
-      ],
-      tip: 'La asignatura principal siempre queda incluida, incluso si no marcas ninguna adicional.',
+      tip: 'Solo se ofrecen asignaturas del mismo grado disponibles para tu usuario.',
       illustration: <ManualIllustration variant="multisubject" />
     },
     {
       audience: 'Docente',
-      title: 'Editar, borrar y previsualizar',
-      description: 'Puedes revisar lo cargado antes de imprimir o hacer ajustes posteriores.',
+      title: 'Observaciones por asignatura',
+      description: 'Las observaciones se guardan independientemente de las marcas y conservan el formato del editor.',
       steps: [
-        'En "Editar o borrar" carga el grado y la asignatura.',
-        'Usa modo individual para cambiar un estudiante o modo grupal para varios a la vez.',
-        'Usa el botón "Eliminar observación" si deseas conservar el preinforme pero limpiar solo el texto.',
-        'En "Previsualizar" revisa las marcas de toda la matriz.',
-        'Haz clic en un estudiante para ver sus observaciones al final.'
+        'Selecciona período, grado y asignatura para cargar automáticamente los estudiantes.',
+        'Haz clic en un estudiante para desplegar su editor debajo del nombre.',
+        'Aplica negrita, cursiva, subrayado, numeración, viñetas o color y guarda.',
+        'Usa "Borrar" para eliminar únicamente la observación individual.',
+        'Marca dos o más estudiantes para agregar o borrar observaciones en grupo.',
+        'Usa las acciones generales para agregar una observación a todos o borrarlas todas, previa confirmación.'
       ],
-      tip: 'El modo grupal de edición solo muestra estudiantes que ya tienen al menos una dificultad registrada.',
-      illustration: <ManualIllustration variant="preview" />
+      tip: 'Al guardar se cierra el acordeón, pero los filtros y el listado permanecen disponibles para continuar.',
+      illustration: <ManualIllustration variant="director" />
+    },
+    {
+      audience: 'Docente',
+      title: 'Agrupación de asignaturas',
+      description: 'Permite presentar varias materias afines como una sola opción dentro de los módulos docentes.',
+      steps: [
+        'Abre "Agrupación de asignaturas" y selecciona el grado.',
+        'Escribe el nombre y el nombre corto de la agrupación.',
+        'Marca sus asignaturas y elige cuál será la principal.',
+        'Define cómo se mostrará en el PDF y guarda.'
+      ],
+      tip: 'La asignatura principal es la referencia interna utilizada para consultar y guardar la información.',
+      illustration: <ManualIllustration variant="subject-groups" />
     }
   ];
 
@@ -304,10 +303,10 @@ export function UserManualModule({ isDirector = false, onBack }) {
       steps: [
         'Selecciona el período y el grado que diriges.',
         'Carga el resumen para ver estadísticas por grado, asignatura y docente.',
-        'Elige el tipo de PDF: todos, por grado, por estudiante o individual.',
+        'Elige el tipo de PDF: consolidado, por grado, por estudiante o individual.',
         'Genera el archivo y descárgalo desde el navegador.'
       ],
-      tip: 'Este módulo solo muestra los grados donde estás asignado como director de grupo.',
+      tip: 'Los PDF conservan color, negrita, cursiva, subrayado, numeración y viñetas de las observaciones.',
       illustration: <ManualIllustration variant="reports" />
     },
     {
@@ -317,13 +316,13 @@ export function UserManualModule({ isDirector = false, onBack }) {
         'Registra observaciones exclusivas del director, independientes de las observaciones por asignatura.',
       steps: [
         'Ingresa al módulo "Observaciones del director".',
-        'Escoge entre modo individual, grupal o previsualización.',
-        'En individual eliges un estudiante y escribes una observación solo para ese caso.',
-        'En grupal marcas varios estudiantes y aplicas una misma observación.',
-        'Usa "Eliminar observación" cuando necesites limpiar el texto sin borrar otros registros.',
-        'Guarda y luego revisa el resultado en la previsualización o en el PDF.'
+        'Selecciona el período; el grado dirigido se asigna automáticamente.',
+        'Haz clic en un estudiante para abrir el editor en forma de acordeón.',
+        'Guarda o borra la observación individual desde el mismo editor.',
+        'Marca dos o más estudiantes para aplicar o borrar una observación compartida.',
+        'Usa las acciones para todos cuando la observación corresponda al grupo completo.'
       ],
-      tip: 'Las observaciones del director aparecen antes de las observaciones normales en el PDF, solo si el estudiante tiene este registro.',
+      tip: 'Las acciones múltiples reemplazan el texto existente y siempre solicitan confirmación.',
       illustration: <ManualIllustration variant="director" />
     }
   ];
